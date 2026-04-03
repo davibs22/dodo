@@ -11,7 +11,7 @@ static void parse_and_populate_images(GtkListStore* store, gchar* output) {
         GtkTreeIter iter;
         gtk_list_store_append(store, &iter);
         gtk_list_store_set(store, &iter,
-                           0, "Erro ao executar docker images",
+                           0, "Error running docker images",
                            1, "", 2, "", 3, "", 4, "", -1);
         return;
     }

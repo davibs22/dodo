@@ -8,7 +8,7 @@ gchar* execute_command(const gchar* command) {
     gchar** argv = NULL;
     gchar* stdout_buf = NULL;
     if (!g_shell_parse_argv(command, NULL, &argv, &error)) {
-        g_warning("execute_command: erro ao parsear '%s': %s", command, error->message);
+        g_warning("execute_command: failed to parse '%s': %s", command, error->message);
         g_error_free(error);
         return NULL;
     }
@@ -20,12 +20,12 @@ gchar* execute_command(const gchar* command) {
     g_strfreev(argv);
     
     if (subprocess == NULL) {
-        g_warning("execute_command: erro ao criar subprocess para '%s': %s", command, error->message);
+        g_warning("execute_command: failed to create subprocess for '%s': %s", command, error->message);
         g_error_free(error);
         return NULL;
     }
     if (!g_subprocess_communicate_utf8(subprocess, NULL, NULL, &stdout_buf, NULL, &error)) {
-        g_warning("execute_command: erro ao comunicar com subprocess '%s': %s", command, error->message);
+        g_warning("execute_command: failed to communicate with subprocess '%s': %s", command, error->message);
         g_error_free(error);
         g_object_unref(subprocess);
         return NULL;
@@ -97,7 +97,7 @@ static gpointer stream_reader_worker(gpointer data) {
         if (error) {
             if (error->domain != G_IO_ERROR || 
                 (error->code != G_IO_ERROR_CLOSED && error->code != G_IO_ERROR_BROKEN_PIPE)) {
-                g_warning("Erro ao ler stream: %s", error->message);
+                g_warning("Error reading stream: %s", error->message);
             }
             g_error_free(error);
             break;
@@ -121,7 +121,7 @@ static gpointer stream_reader_worker(gpointer data) {
     cmd_stream->is_running = FALSE;
     if (cmd_stream->callback && cmd_stream->user_data) {
         StreamChunkData* chunk_data = g_new(StreamChunkData, 1);
-        chunk_data->chunk = NULL; // NULL indica fim do stream
+        chunk_data->chunk = NULL; // NULL indicates end of stream
         chunk_data->callback = cmd_stream->callback;
         chunk_data->user_data = cmd_stream->user_data;
         g_idle_add(deliver_stream_chunk, chunk_data);
@@ -140,7 +140,7 @@ CommandStream* execute_command_stream(const gchar* command, CommandStreamCallbac
     GError* error = NULL;
     gchar** argv = NULL;
     if (!g_shell_parse_argv(command, NULL, &argv, &error)) {
-        g_warning("execute_command_stream: erro ao parsear '%s': %s", command, error->message);
+        g_warning("execute_command_stream: failed to parse '%s': %s", command, error->message);
         g_error_free(error);
         return NULL;
     }
@@ -152,21 +152,21 @@ CommandStream* execute_command_stream(const gchar* command, CommandStreamCallbac
     g_strfreev(argv);
     
     if (subprocess == NULL) {
-        g_warning("execute_command_stream: erro ao criar subprocess para '%s': %s", command, error->message);
+        g_warning("execute_command_stream: failed to create subprocess for '%s': %s", command, error->message);
         g_error_free(error);
         return NULL;
     }
     GInputStream* stdout_stream = g_subprocess_get_stdout_pipe(subprocess);
     if (!stdout_stream) {
-        g_warning("execute_command_stream: erro ao obter stdout pipe");
+        g_warning("execute_command_stream: failed to get stdout pipe");
         g_object_unref(subprocess);
         return NULL;
     }
     CommandStream* cmd_stream = g_new0(CommandStream, 1);
     cmd_stream->subprocess = subprocess;
-    cmd_stream->stdout_stream = g_object_ref(stdout_stream); // Mantém referência
-    cmd_stream->data_stream = NULL; // Não usado nesta implementação
-    cmd_stream->watch_source = NULL; // Não usado nesta implementação
+    cmd_stream->stdout_stream = g_object_ref(stdout_stream); // Keep reference
+    cmd_stream->data_stream = NULL; // Not used in this implementation
+    cmd_stream->watch_source = NULL; // Not used in this implementation
     cmd_stream->is_running = TRUE;
     cmd_stream->callback = callback;
     cmd_stream->user_data = user_data;

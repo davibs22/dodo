@@ -34,7 +34,7 @@ typedef struct {
     gchar* container_id;
     gchar* container_name;
     gboolean is_streaming;
-    gboolean is_destroyed; // Flag para indicar que o diálogo foi destruído
+    gboolean is_destroyed; // Flag indicating dialog was destroyed
 } LogsWindowData;
 typedef struct {
     GtkTreeStore* store;
@@ -87,7 +87,7 @@ static gboolean containers_filter_func(GtkTreeModel* model, GtkTreeIter* iter, g
     const gchar* search_text = gtk_entry_get_text(search_entry);
     
     if (!search_text || strlen(search_text) == 0) {
-        return TRUE; // Mostra tudo se não há texto de busca
+        return TRUE; // Show all if there is no search text
     }
     
     gchar* search_lower = g_ascii_strdown(search_text, -1);
@@ -156,7 +156,7 @@ static void set_group_loading_status(GtkTreeStore* store, GtkTreeIter* iter) {
 static void on_confirm_remove_container_response(GtkDialog* dialog, gint response_id, gpointer user_data);
 static void on_docker_action_complete(gchar* output, gpointer user_data) {
     ContainerTableData* data = (ContainerTableData*)user_data;
-    g_free(output); // Nao precisamos da saida do comando de acao
+    g_free(output); // No need for command action output
     refresh_containers_table_async(data->store, data->tree_view);
 }
 static void on_container_remove_complete(gchar* output, gpointer user_data) {
@@ -184,16 +184,16 @@ static void on_container_remove_complete(gchar* output, gpointer user_data) {
     }
     if (data && data->parent_window) {
         if (success) {
-            gchar* message = g_strdup_printf("Container '%s' foi removido com sucesso.", 
+            gchar* message = g_strdup_printf("Container '%s' was removed successfully.", 
                                              data->container_name ? data->container_name : data->container_id);
-            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Sucesso", message);
+            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Success", message);
             g_free(message);
         } else {
-            gchar* error_msg = output ? g_strdup(output) : g_strdup("Erro desconhecido ao remover container.");
-            gchar* message = g_strdup_printf("Erro ao remover container '%s':\n%s", 
+            gchar* error_msg = output ? g_strdup(output) : g_strdup("Unknown error while removing container.");
+            gchar* message = g_strdup_printf("Error ao remover container '%s':\n%s", 
                                              data->container_name ? data->container_name : data->container_id,
                                              error_msg);
-            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Erro", message);
+            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Error", message);
             g_free(message);
             g_free(error_msg);
         }
@@ -234,16 +234,16 @@ static void on_compose_down_complete(gchar* output, gpointer user_data) {
     }
     if (data && data->parent_window) {
         if (success) {
-            gchar* message = g_strdup_printf("Projeto Compose '%s' foi removido com sucesso.", 
-                                             data->project_name ? data->project_name : "desconhecido");
-            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Sucesso", message);
+            gchar* message = g_strdup_printf("Compose project '%s' was removed successfully.", 
+                                             data->project_name ? data->project_name : "unknown");
+            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Success", message);
             g_free(message);
         } else {
-            gchar* error_msg = output ? g_strdup(output) : g_strdup("Erro desconhecido ao executar compose down.");
-            gchar* message = g_strdup_printf("Erro ao executar compose down no projeto '%s':\n%s", 
-                                                  data->project_name ? data->project_name : "desconhecido", 
+            gchar* error_msg = output ? g_strdup(output) : g_strdup("Error unknown ao executar compose down.");
+            gchar* message = g_strdup_printf("Error ao executar compose down no projeto '%s':\n%s", 
+                                                  data->project_name ? data->project_name : "unknown", 
                                                   error_msg);
-            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Erro", message);
+            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Error", message);
             g_free(message);
             g_free(error_msg);
         }
@@ -402,7 +402,7 @@ static void on_remove_container(GtkMenuItem* item, gpointer user_data) {
     
     if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
         if (gtk_tree_model_iter_has_child(model, &iter)) {
-            return; // Não remove grupos
+            return; // Do not remove groups
         }
         
         gchar* container_id = NULL;
@@ -422,15 +422,15 @@ static void on_remove_container(GtkMenuItem* item, gpointer user_data) {
             gchar* message;
             if (is_running) {
                 message = g_strdup_printf(
-                    "Tem certeza que deseja remover o container '%s'?\n\n"
-                    "O container está rodando e será forçadamente parado e removido. "
-                    "Esta ação não pode ser desfeita.",
+                    "Are you sure you want to remove container '%s'?\n\n"
+                    "The container is running and will be force-stopped and removed. "
+                    "This action cannot be undone.",
                     display_name
                 );
             } else {
                 message = g_strdup_printf(
-                    "Tem certeza que deseja remover o container '%s'?\n\n"
-                    "Esta ação não pode ser desfeita.",
+                    "Are you sure you want to remove container '%s'?\n\n"
+                    "This action cannot be undone.",
                     display_name
                 );
             }
@@ -438,7 +438,7 @@ static void on_remove_container(GtkMenuItem* item, gpointer user_data) {
                                                     GTK_MESSAGE_QUESTION, 
                                                     GTK_BUTTONS_YES_NO, 
                                                     "%s", message);
-            gtk_window_set_title(GTK_WINDOW(dialog), "Confirmar Remoção de Container");
+            gtk_window_set_title(GTK_WINDOW(dialog), "Confirm Container Removal");
             g_free(message);
             RemoveContainerData* confirm_data = g_new(RemoveContainerData, 1);
             confirm_data->store = data->store;
@@ -540,12 +540,12 @@ static void on_compose_down(GtkMenuItem* item, gpointer user_data) {
         if (project_name && strlen(project_name) > 0) {
             GtkWidget* toplevel = gtk_widget_get_toplevel(data->tree_view);
             GtkWindow* parent_window = GTK_IS_WINDOW(toplevel) ? GTK_WINDOW(toplevel) : NULL;
-            gchar* message = g_strdup_printf("Tem certeza que deseja executar 'compose down' no projeto '%s'?\n\nIsso irá parar e remover todos os containers, redes e volumes do projeto. Esta ação não pode ser desfeita.", project_name);
+            gchar* message = g_strdup_printf("Are you sure you want to run 'compose down' on project '%s'?\n\nThis will stop and remove all containers, networks, and volumes for this project. This action cannot be undone.", project_name);
             GtkWidget* dialog = gtk_message_dialog_new(parent_window, GTK_DIALOG_MODAL, 
                                                     GTK_MESSAGE_QUESTION, 
                                                     GTK_BUTTONS_YES_NO, 
                                                     "%s", message);
-            gtk_window_set_title(GTK_WINDOW(dialog), "Confirmar Compose Down");
+            gtk_window_set_title(GTK_WINDOW(dialog), "Confirm Compose Down");
             g_free(message);
             ComposeDownData* confirm_data = g_new(ComposeDownData, 1);
             confirm_data->store = data->store;
@@ -705,22 +705,22 @@ static void apply_json_syntax_highlighting(GtkTextBuffer* buffer, const gchar* j
     if (!buffer || !json_text) return;
     gtk_text_buffer_set_text(buffer, json_text, -1);
     GtkTextTag* tag_key = gtk_text_buffer_create_tag(buffer, "json_key",
-        "foreground", "#268bd2",  // Azul para chaves
+        "foreground", "#268bd2",  // Blue for keys
         NULL);
     GtkTextTag* tag_string = gtk_text_buffer_create_tag(buffer, "json_string",
-        "foreground", "#2aa198",  // Ciano para strings
+        "foreground", "#2aa198",  // Cyan for strings
         NULL);
     GtkTextTag* tag_number = gtk_text_buffer_create_tag(buffer, "json_number",
-        "foreground", "#d33682",  // Magenta para números
+        "foreground", "#d33682",  // Magenta for numbers
         NULL);
     GtkTextTag* tag_boolean = gtk_text_buffer_create_tag(buffer, "json_boolean",
-        "foreground", "#859900",  // Verde para booleanos
+        "foreground", "#859900",  // Green for booleans
         NULL);
     GtkTextTag* tag_null = gtk_text_buffer_create_tag(buffer, "json_null",
-        "foreground", "#dc322f",  // Vermelho para null
+        "foreground", "#dc322f",  // Red for null
         NULL);
     GtkTextTag* tag_delimiter = gtk_text_buffer_create_tag(buffer, "json_delimiter",
-        "foreground", "#586e75",  // Cinza para delimitadores
+        "foreground", "#586e75",  // Gray for delimiters
         "weight", PANGO_WEIGHT_BOLD,
         NULL);
     
@@ -813,7 +813,7 @@ static void apply_json_syntax_highlighting(GtkTextBuffer* buffer, const gchar* j
                     gtk_text_buffer_get_iter_at_offset(buffer, &start, num_start);
                     gtk_text_buffer_get_iter_at_offset(buffer, &end, num_end);
                     gtk_text_buffer_apply_tag(buffer, tag_number, &start, &end);
-                    i = num_end - 1; // Ajusta o índice
+                    i = num_end - 1; // Adjust index
                 }
             }
             continue;
@@ -826,7 +826,7 @@ static void apply_json_syntax_highlighting(GtkTextBuffer* buffer, const gchar* j
                 gtk_text_buffer_get_iter_at_offset(buffer, &start, i);
                 gtk_text_buffer_get_iter_at_offset(buffer, &end, i + 4);
                 gtk_text_buffer_apply_tag(buffer, tag_boolean, &start, &end);
-                i += 3; // Pula os caracteres processados
+                i += 3; // Skip processed characters
             }
             continue;
         }
@@ -872,10 +872,10 @@ static void on_container_inspect_complete(gchar* output, gpointer user_data) {
         return;
     }
     GtkWidget* dialog = gtk_dialog_new_with_buttons(
-        "Detalhes do Container",
+        "Container Details",
         data->parent_window,
         GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-        "Fechar",
+        "Close",
         GTK_RESPONSE_CLOSE,
         NULL
     );
@@ -936,9 +936,9 @@ static void on_container_inspect_complete(gchar* output, gpointer user_data) {
         apply_json_syntax_highlighting(buffer, formatted_output);
         g_free(formatted_output);
     } else {
-        gchar* error_msg = g_strdup_printf("Erro ao obter detalhes do container '%s'.\n\n%s",
-                                           data->container_id ? data->container_id : "desconhecido",
-                                           output ? output : "Erro desconhecido.");
+        gchar* error_msg = g_strdup_printf("Error ao obter detalhes do container '%s'.\n\n%s",
+                                           data->container_id ? data->container_id : "unknown",
+                                           output ? output : "Error unknown.");
         gtk_text_buffer_set_text(buffer, error_msg, -1);
         g_free(error_msg);
     }
@@ -999,10 +999,10 @@ static void on_logs_dialog_destroy(GtkWidget* widget, gpointer user_data) {
 }
 static void show_container_logs(GtkWindow* parent_window, const gchar* container_id, const gchar* container_name) {
     GtkWidget* dialog = gtk_dialog_new_with_buttons(
-        "Logs do Container",
+        "Container Logs",
         parent_window,
         GTK_DIALOG_DESTROY_WITH_PARENT,
-        "Fechar",
+        "Close",
         GTK_RESPONSE_CLOSE,
         NULL
     );
@@ -1062,10 +1062,10 @@ static void on_view_logs_clicked(GtkMenuItem* menu_item, gpointer user_data) {
     GtkTreeIter iter;
     
     if (!gtk_tree_selection_get_selected(selection, &model, &iter)) {
-        return; // Nenhuma linha selecionada
+        return; // No row selected
     }
     if (gtk_tree_model_iter_has_child(model, &iter)) {
-        return; // Não mostra logs de grupos
+        return; // Do not show group logs
     }
     gchar* container_id = NULL;
     gchar* container_name = NULL;
@@ -1093,10 +1093,10 @@ static void on_inspect_container_clicked(GtkMenuItem* menu_item, gpointer user_d
     GtkTreeIter iter;
     
     if (!gtk_tree_selection_get_selected(selection, &model, &iter)) {
-        return; // Nenhuma linha selecionada
+        return; // No row selected
     }
     if (gtk_tree_model_iter_has_child(model, &iter)) {
-        return; // Não inspeciona grupos
+        return; // Do not inspect groups
     }
     gchar* container_id = NULL;
     gtk_tree_model_get(model, &iter, 2, &container_id, -1);
@@ -1218,10 +1218,10 @@ static gboolean on_button_press_event(GtkWidget* widget, GdkEventButton* event, 
                 g_signal_connect(down_item, "activate", G_CALLBACK(on_compose_down), data);
                 gtk_menu_shell_append(GTK_MENU_SHELL(menu), down_item);
             } else if (!is_group) {
-                GtkWidget* logs_item = gtk_menu_item_new_with_label("Visualizar logs");
+                GtkWidget* logs_item = gtk_menu_item_new_with_label("View logs");
                 g_signal_connect(logs_item, "activate", G_CALLBACK(on_view_logs_clicked), data);
                 gtk_menu_shell_append(GTK_MENU_SHELL(menu), logs_item);
-                GtkWidget* inspect_item = gtk_menu_item_new_with_label("Visualizar detalhes");
+                GtkWidget* inspect_item = gtk_menu_item_new_with_label("View details");
                 g_signal_connect(inspect_item, "activate", G_CALLBACK(on_inspect_container_clicked), data);
                 gtk_menu_shell_append(GTK_MENU_SHELL(menu), inspect_item);
                 GtkWidget* separator = gtk_separator_menu_item_new();
@@ -1255,7 +1255,7 @@ static gboolean on_button_press_event(GtkWidget* widget, GdkEventButton* event, 
                 if (status_full) g_free(status_full);
                 GtkWidget* separator2 = gtk_separator_menu_item_new();
                 gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator2);
-                GtkWidget* remove_item = gtk_menu_item_new_with_label("Remover");
+                GtkWidget* remove_item = gtk_menu_item_new_with_label("Remove");
                 g_signal_connect(remove_item, "activate", G_CALLBACK(on_remove_container), data);
                 gtk_menu_shell_append(GTK_MENU_SHELL(menu), remove_item);
             }
@@ -1274,19 +1274,19 @@ static gboolean on_button_press_event(GtkWidget* widget, GdkEventButton* event, 
 
 GtkWidget* create_containers_table(void) {
     GtkTreeStore* store = gtk_tree_store_new(10,
-                                              G_TYPE_STRING,  // STATUS (rodando/parado)
-                                              G_TYPE_STRING,  // COR (foreground)
+                                              G_TYPE_STRING,  // STATUS (running/stopped)
+                                              G_TYPE_STRING,  // COLOR (foreground)
                                               G_TYPE_STRING,  // CONTAINER ID
                                               G_TYPE_STRING,  // IMAGE
                                               G_TYPE_STRING,  // COMMAND
                                               G_TYPE_STRING,  // CREATED
-                                              G_TYPE_STRING,  // STATUS (completo)
+                                              G_TYPE_STRING,  // STATUS (full)
                                               G_TYPE_STRING,  // PORTS
                                               G_TYPE_STRING,  // NAMES
                                               G_TYPE_STRING); // COMPOSE ICON
     populate_docker_containers_async(store);
     GtkWidget* search_entry = gtk_search_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Filtrar containers...");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Filter containers...");
     gtk_widget_set_margin_start(search_entry, 6);
     gtk_widget_set_margin_end(search_entry, 6);
     gtk_widget_set_margin_top(search_entry, 6);
@@ -1296,9 +1296,9 @@ GtkWidget* create_containers_table(void) {
     gtk_tree_model_filter_set_visible_func(filter, containers_filter_func, search_entry, NULL);
     g_signal_connect(search_entry, "search-changed", G_CALLBACK(on_search_changed), filter);
     GtkTreeModel* sort_model = gtk_tree_model_sort_new_with_model(GTK_TREE_MODEL(filter));
-    g_object_unref(filter); // sort_model mantém a referência
+    g_object_unref(filter); // sort_model keeps the reference
     GtkWidget* tree_view = gtk_tree_view_new_with_model(sort_model);
-    g_object_unref(sort_model); // TreeView mantém a referência
+    g_object_unref(sort_model); // TreeView keeps the reference
     ContainerTableData* data = g_new(ContainerTableData, 1);
     data->store = store;
     data->filter = filter;

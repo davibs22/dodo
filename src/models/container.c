@@ -63,19 +63,19 @@ static void get_group_status(GPtrArray* containers, gchar** status_text, gchar**
     
     if (running_count == 0) {
         *status_text = g_strdup_printf("All Stopped (%d)", total_count);
-        *color = NULL; // Cor padrão
+        *color = NULL; // Default color
     } else if (running_count == total_count) {
         *status_text = g_strdup_printf("All Running (%d)", total_count);
-        *color = g_strdup("#00AA00"); // Verde
+        *color = g_strdup("#00AA00"); // Green
     } else {
         *status_text = g_strdup_printf("%d/%d Running", running_count, total_count);
-        *color = g_strdup("#FFAA00"); // Laranja/Amarelo para parcial
+        *color = g_strdup("#FFAA00"); // Orange/Yellow for partial
     }
 }
 
 typedef struct {
-    GHashTable* project_groups;         // gchar* → GPtrArray* de ContainerInfo*
-    GPtrArray* standalone_containers;   // GPtrArray de ContainerInfo*
+    GHashTable* project_groups;         // gchar* -> GPtrArray* of ContainerInfo*
+    GPtrArray* standalone_containers;   // GPtrArray of ContainerInfo*
     gboolean has_error;
 } ContainersCollectedData;
 static void free_collected_data(ContainersCollectedData* data) {
@@ -109,7 +109,7 @@ static ContainersCollectedData* collect_containers_data(void) {
     result->project_groups = g_hash_table_new_full(
         g_str_hash, g_str_equal,
         g_free,                     // key destroy
-        destroy_container_array     // value destroy (libera GPtrArray que libera ContainerInfo)
+        destroy_container_array     // value destroy (frees GPtrArray and ContainerInfo)
     );
     result->standalone_containers = g_ptr_array_new_with_free_func((GDestroyNotify)free_container_info);
     for (gint i = 0; lines[i] != NULL; i++) {
@@ -154,9 +154,9 @@ static void apply_data_to_store(GtkTreeStore* store, ContainersCollectedData* da
         GtkTreeIter iter;
         gtk_tree_store_append(store, &iter, NULL);
         gtk_tree_store_set(store, &iter,
-                           0, "⚠ Erro",
+                           0, "⚠ Error",
                            1, NULL,
-                           2, "Erro ao executar docker container ls -a",
+                           2, "Error running docker container ls -a",
                            3, "", 4, "", 5, "", 6, "", 7, "", 8, "", 9, "", -1);
         return;
     }

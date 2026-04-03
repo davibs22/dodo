@@ -8,9 +8,9 @@ extern "C" {
 #endif
 
 /**
- * Cria e retorna um widget ScrolledWindow contendo a tabela de networks do Docker.
+ * Creates and returns a ScrolledWindow widget containing the Docker networks table.
  * 
- * @return GtkWidget* ScrolledWindow contendo a TreeView de networks
+ * @return GtkWidget* ScrolledWindow containing the networks TreeView
  */
 GtkWidget* create_networks_table(void);
 

@@ -8,10 +8,10 @@ extern "C" {
 #endif
 
 /**
- * Cria e retorna um widget ScrolledWindow contendo a tabela de containers do Docker.
- * A tabela inclui menu de contexto (botão direito) para controlar os containers.
+ * Creates and returns a ScrolledWindow widget containing the Docker containers table.
+ * The table includes a context menu (right-click) to control containers.
  * 
- * @return GtkWidget* ScrolledWindow contendo a TreeView de containers
+ * @return GtkWidget* ScrolledWindow containing the containers TreeView
  */
 GtkWidget* create_containers_table(void);
 

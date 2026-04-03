@@ -8,11 +8,11 @@ extern "C" {
 #endif
 
 /**
- * Cria e configura a janela principal da aplicação.
+ * Creates and configures the application's main window.
  * 
- * @param argc Número de argumentos da linha de comando
- * @param argv Array de argumentos da linha de comando
- * @return GtkWidget* Ponteiro para a janela principal criada
+ * @param argc Number of command-line arguments
+ * @param argv Command-line arguments array
+ * @return GtkWidget* Pointer to the created main window
  */
 GtkWidget* create_main_window(int argc, char *argv[]);
 

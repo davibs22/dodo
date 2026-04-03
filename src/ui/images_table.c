@@ -23,7 +23,7 @@ typedef struct {
     GtkListStore* store;
     gchar* image_id;
     gchar* image_name;
-    GtkWidget* loading_dialog;  // Diálogo de loading durante a exportação
+    GtkWidget* loading_dialog;  // Loading dialog during export
 } ExportImageData;
 typedef struct {
     GtkWindow* parent_window;
@@ -33,15 +33,15 @@ typedef struct {
     GtkWindow* parent_window;
     gchar* image_id;
     gchar* image_name;
-    GtkTreeStore* containers_store;  // Store da tabela de containers para atualizar
-    GtkWidget* containers_tree_view; // Tree view da tabela de containers
+    GtkTreeStore* containers_store;  // Containers table store to refresh
+    GtkWidget* containers_tree_view; // Containers table tree view
 } CreateContainerData;
 static gboolean list_filter_func(GtkTreeModel* model, GtkTreeIter* iter, gpointer data) {
     GtkEntry* search_entry = GTK_ENTRY(data);
     const gchar* search_text = gtk_entry_get_text(search_entry);
     
     if (!search_text || strlen(search_text) == 0) {
-        return TRUE; // Mostra tudo se não há texto de busca
+        return TRUE; // Show all if there is no search text
     }
     
     gchar* search_lower = g_ascii_strdown(search_text, -1);
@@ -102,16 +102,16 @@ static void on_image_removed(gchar* output, gpointer user_data) {
     }
     if (data && data->parent_window) {
         if (success) {
-            gchar* message = g_strdup_printf("Imagem '%s' removida com sucesso.", 
-                                             data->image_name ? data->image_name : data->image_id ? data->image_id : "desconhecida");
-            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Sucesso", message);
+            gchar* message = g_strdup_printf("Image '%s' removed successfully.", 
+                                             data->image_name ? data->image_name : data->image_id ? data->image_id : "unknown");
+            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Success", message);
             g_free(message);
         } else {
-            gchar* error_msg = output ? g_strdup(output) : g_strdup("Erro desconhecido ao remover a imagem.");
-            gchar* message = g_strdup_printf("Erro ao remover imagem '%s':\n%s", 
-                                                  data->image_name ? data->image_name : data->image_id ? data->image_id : "desconhecida", 
+            gchar* error_msg = output ? g_strdup(output) : g_strdup("Unknown error while removing image.");
+            gchar* message = g_strdup_printf("Error ao remover imagem '%s':\n%s", 
+                                                  data->image_name ? data->image_name : data->image_id ? data->image_id : "unknown", 
                                                   error_msg);
-            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Erro", message);
+            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Error", message);
             g_free(message);
             g_free(error_msg);
         }
@@ -228,22 +228,22 @@ static void apply_json_syntax_highlighting(GtkTextBuffer* buffer, const gchar* j
     if (!buffer || !json_text) return;
     gtk_text_buffer_set_text(buffer, json_text, -1);
     GtkTextTag* tag_key = gtk_text_buffer_create_tag(buffer, "json_key",
-        "foreground", "#268bd2",  // Azul para chaves
+        "foreground", "#268bd2",  // Blue for keys
         NULL);
     GtkTextTag* tag_string = gtk_text_buffer_create_tag(buffer, "json_string",
-        "foreground", "#2aa198",  // Ciano para strings
+        "foreground", "#2aa198",  // Cyan for strings
         NULL);
     GtkTextTag* tag_number = gtk_text_buffer_create_tag(buffer, "json_number",
-        "foreground", "#d33682",  // Magenta para números
+        "foreground", "#d33682",  // Magenta for numbers
         NULL);
     GtkTextTag* tag_boolean = gtk_text_buffer_create_tag(buffer, "json_boolean",
-        "foreground", "#859900",  // Verde para booleanos
+        "foreground", "#859900",  // Green for booleans
         NULL);
     GtkTextTag* tag_null = gtk_text_buffer_create_tag(buffer, "json_null",
-        "foreground", "#dc322f",  // Vermelho para null
+        "foreground", "#dc322f",  // Red for null
         NULL);
     GtkTextTag* tag_delimiter = gtk_text_buffer_create_tag(buffer, "json_delimiter",
-        "foreground", "#586e75",  // Cinza para delimitadores
+        "foreground", "#586e75",  // Gray for delimiters
         "weight", PANGO_WEIGHT_BOLD,
         NULL);
     
@@ -337,7 +337,7 @@ static void apply_json_syntax_highlighting(GtkTextBuffer* buffer, const gchar* j
                     gtk_text_buffer_get_iter_at_offset(buffer, &start, num_start);
                     gtk_text_buffer_get_iter_at_offset(buffer, &end, num_end);
                     gtk_text_buffer_apply_tag(buffer, tag_number, &start, &end);
-                    i = num_end - 1; // Ajusta o índice
+                    i = num_end - 1; // Adjust index
                 }
             }
             continue;
@@ -350,7 +350,7 @@ static void apply_json_syntax_highlighting(GtkTextBuffer* buffer, const gchar* j
                 gtk_text_buffer_get_iter_at_offset(buffer, &start, i);
                 gtk_text_buffer_get_iter_at_offset(buffer, &end, i + 4);
                 gtk_text_buffer_apply_tag(buffer, tag_boolean, &start, &end);
-                i += 3; // Pula os caracteres processados
+                i += 3; // Skip processed characters
             }
             continue;
         }
@@ -396,10 +396,10 @@ static void on_image_inspect_complete(gchar* output, gpointer user_data) {
         return;
     }
     GtkWidget* dialog = gtk_dialog_new_with_buttons(
-        "Detalhes da Imagem",
+        "Image Details",
         data->parent_window,
         GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-        "Fechar",
+        "Close",
         GTK_RESPONSE_CLOSE,
         NULL
     );
@@ -460,9 +460,9 @@ static void on_image_inspect_complete(gchar* output, gpointer user_data) {
         apply_json_syntax_highlighting(buffer, formatted_output);
         g_free(formatted_output);
     } else {
-        gchar* error_msg = g_strdup_printf("Erro ao obter detalhes da imagem '%s'.\n\n%s",
-                                           data->image_id ? data->image_id : "desconhecida",
-                                           output ? output : "Erro desconhecido.");
+        gchar* error_msg = g_strdup_printf("Error ao obter detalhes da imagem '%s'.\n\n%s",
+                                           data->image_id ? data->image_id : "unknown",
+                                           output ? output : "Error desconhecido.");
         gtk_text_buffer_set_text(buffer, error_msg, -1);
         g_free(error_msg);
     }
@@ -476,7 +476,7 @@ static void on_image_inspect_complete(gchar* output, gpointer user_data) {
 }
 static GtkWidget* create_loading_dialog(GtkWindow* parent, const gchar* message) {
     GtkWidget* dialog = gtk_dialog_new();
-    gtk_window_set_title(GTK_WINDOW(dialog), "Exportando Imagem");
+    gtk_window_set_title(GTK_WINDOW(dialog), "Exporting Image");
     gtk_window_set_transient_for(GTK_WINDOW(dialog), parent);
     gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
     gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
@@ -526,16 +526,16 @@ static void on_image_exported(gchar* output, gpointer user_data) {
     }
     if (data && data->parent_window) {
         if (success) {
-            gchar* message = g_strdup_printf("Imagem '%s' exportada com sucesso.", 
-                                           data->image_name ? data->image_name : data->image_id ? data->image_id : "desconhecida");
-            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Sucesso", message);
+            gchar* message = g_strdup_printf("Image '%s' exported successfully.", 
+                                           data->image_name ? data->image_name : data->image_id ? data->image_id : "unknown");
+            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Success", message);
             g_free(message);
         } else {
-            gchar* error_msg = output ? g_strdup(output) : g_strdup("Erro desconhecido ao exportar a imagem.");
-            gchar* message = g_strdup_printf("Erro ao exportar imagem '%s':\n%s", 
-                                              data->image_name ? data->image_name : data->image_id ? data->image_id : "desconhecida", 
+            gchar* error_msg = output ? g_strdup(output) : g_strdup("Error desconhecido ao exportar a imagem.");
+            gchar* message = g_strdup_printf("Error ao exportar imagem '%s':\n%s", 
+                                              data->image_name ? data->image_name : data->image_id ? data->image_id : "unknown", 
                                               error_msg);
-            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Erro", message);
+            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Error", message);
             g_free(message);
             g_free(error_msg);
         }
@@ -573,11 +573,11 @@ static void on_image_imported(gchar* output, gpointer user_data) {
     }
     if (data && data->parent_window) {
         if (success) {
-            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Sucesso", "Imagem importada com sucesso.");
+            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Success", "Image imported successfully.");
         } else {
-            gchar* error_msg = output ? g_strdup(output) : g_strdup("Erro desconhecido ao importar a imagem.");
-            gchar* message = g_strdup_printf("Erro ao importar imagem:\n%s", error_msg);
-            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Erro", message);
+            gchar* error_msg = output ? g_strdup(output) : g_strdup("Error desconhecido ao importar a imagem.");
+            gchar* message = g_strdup_printf("Error ao importar imagem:\n%s", error_msg);
+            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Error", message);
             g_free(message);
             g_free(error_msg);
         }
@@ -601,7 +601,7 @@ static void on_export_file_dialog_response(GtkDialog* dialog, gint response_id, 
         
         if (filename) {
             gchar* loading_message = g_strdup_printf("Exportando imagem '%s'...\nIsso pode levar alguns minutos.", 
-                                                     data->image_name ? data->image_name : data->image_id ? data->image_id : "desconhecida");
+                                                     data->image_name ? data->image_name : data->image_id ? data->image_id : "unknown");
             data->loading_dialog = create_loading_dialog(data->parent_window, loading_message);
             g_free(loading_message);
             gchar* escaped_filename = g_shell_quote(filename);
@@ -633,8 +633,8 @@ static void on_import_file_dialog_response(GtkDialog* dialog, gint response_id, 
         
         if (filename) {
             if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-                gchar* message = g_strdup_printf("O arquivo '%s' não existe.", filename);
-                show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Erro", message);
+                gchar* message = g_strdup_printf("File '%s' does not exist.", filename);
+                show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Error", message);
                 g_free(message);
                 g_free(filename);
                 g_free(data);
@@ -667,7 +667,7 @@ static void on_export_image_clicked(GtkMenuItem* menu_item, gpointer user_data) 
     GtkTreeIter iter;
     
     if (!gtk_tree_selection_get_selected(selection, &model, &iter)) {
-        return; // Nenhuma linha selecionada
+        return; // No row selected
     }
     gchar* image_id = NULL;
     gchar* repository = NULL;
@@ -694,11 +694,11 @@ static void on_export_image_clicked(GtkMenuItem* menu_item, gpointer user_data) 
     GtkWidget* toplevel = gtk_widget_get_toplevel(data->tree_view);
     GtkWindow* parent_window = GTK_IS_WINDOW(toplevel) ? GTK_WINDOW(toplevel) : NULL;
     GtkWidget* dialog = gtk_file_chooser_dialog_new(
-        "Exportar Imagem",
+        "Export Image",
         parent_window,
         GTK_FILE_CHOOSER_ACTION_SAVE,
-        "Cancelar", GTK_RESPONSE_CANCEL,
-        "Salvar", GTK_RESPONSE_ACCEPT,
+        "Cancel", GTK_RESPONSE_CANCEL,
+        "Save", GTK_RESPONSE_ACCEPT,
         NULL
     );
     
@@ -711,7 +711,7 @@ static void on_export_image_clicked(GtkMenuItem* menu_item, gpointer user_data) 
     export_data->store = data->store;
     export_data->image_id = g_strdup(image_id);
     export_data->image_name = g_strdup(image_name);
-    export_data->loading_dialog = NULL;  // Será criado quando a exportação começar
+    export_data->loading_dialog = NULL;  // Created when export starts
     g_signal_connect(dialog, "response", G_CALLBACK(on_export_file_dialog_response), export_data);
     gtk_widget_show_all(dialog);
     
@@ -756,18 +756,18 @@ static void on_container_created(gchar* output, gpointer user_data) {
     if (data && data->parent_window) {
         if (success) {
             gchar* container_id_str = container_id ? g_strdup_printf(" (ID: %s)", container_id) : g_strdup("");
-            gchar* message = g_strdup_printf("Container criado com sucesso a partir da imagem '%s'%s", 
-                                           data->image_name ? data->image_name : data->image_id ? data->image_id : "desconhecida",
+            gchar* message = g_strdup_printf("Container created successfully from image '%s'%s", 
+                                           data->image_name ? data->image_name : data->image_id ? data->image_id : "unknown",
                                            container_id_str);
-            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Sucesso", message);
+            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Success", message);
             g_free(message);
             g_free(container_id_str);
         } else {
-            gchar* error_msg = output ? g_strdup(output) : g_strdup("Erro desconhecido ao criar o container.");
-            gchar* message = g_strdup_printf("Erro ao criar container a partir da imagem '%s':\n%s", 
-                                              data->image_name ? data->image_name : data->image_id ? data->image_id : "desconhecida", 
+            gchar* error_msg = output ? g_strdup(output) : g_strdup("Error desconhecido ao criar o container.");
+            gchar* message = g_strdup_printf("Error ao criar container a partir da imagem '%s':\n%s", 
+                                              data->image_name ? data->image_name : data->image_id ? data->image_id : "unknown", 
                                               error_msg);
-            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Erro", message);
+            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Error", message);
             g_free(message);
             g_free(error_msg);
         }
@@ -866,7 +866,7 @@ static void on_create_container_clicked(GtkMenuItem* menu_item, gpointer user_da
     GtkTreeIter iter;
     
     if (!gtk_tree_selection_get_selected(selection, &model, &iter)) {
-        return; // Nenhuma linha selecionada
+        return; // No row selected
     }
     gchar* image_id = NULL;
     gchar* repository = NULL;
@@ -900,11 +900,11 @@ static void on_create_container_clicked(GtkMenuItem* menu_item, gpointer user_da
         containers_tree_view = GTK_WIDGET(g_object_get_data(G_OBJECT(window), "containers-tree-view"));
     }
     GtkWidget* dialog = gtk_dialog_new_with_buttons(
-        "Criar Container",
+        "Create Container",
         parent_window,
         GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-        "Cancelar", GTK_RESPONSE_CANCEL,
-        "Criar", GTK_RESPONSE_ACCEPT,
+        "Cancel", GTK_RESPONSE_CANCEL,
+        "Create", GTK_RESPONSE_ACCEPT,
         NULL
     );
     
@@ -918,7 +918,7 @@ static void on_create_container_clicked(GtkMenuItem* menu_item, gpointer user_da
     gtk_grid_set_column_homogeneous(GTK_GRID(grid), FALSE);
     
     gint row = 0;
-    GtkWidget* image_label = gtk_label_new("Imagem:");
+    GtkWidget* image_label = gtk_label_new("Image:");
     gtk_label_set_xalign(GTK_LABEL(image_label), 0.0);
     gtk_grid_attach(GTK_GRID(grid), image_label, 0, row, 1, 1);
     
@@ -927,48 +927,48 @@ static void on_create_container_clicked(GtkMenuItem* menu_item, gpointer user_da
     gtk_widget_set_sensitive(image_entry, FALSE);
     gtk_grid_attach(GTK_GRID(grid), image_entry, 1, row, 1, 1);
     row++;
-    GtkWidget* name_label = gtk_label_new("Nome do Container:");
+    GtkWidget* name_label = gtk_label_new("Container Name:");
     gtk_label_set_xalign(GTK_LABEL(name_label), 0.0);
     gtk_grid_attach(GTK_GRID(grid), name_label, 0, row, 1, 1);
     
     GtkWidget* name_entry = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(name_entry), "Opcional");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(name_entry), "Optional");
     gtk_grid_attach(GTK_GRID(grid), name_entry, 1, row, 1, 1);
     g_object_set_data(G_OBJECT(dialog), "name-entry", name_entry);
     row++;
-    GtkWidget* ports_label = gtk_label_new("Portas (host:container):");
+    GtkWidget* ports_label = gtk_label_new("Ports (host:container):");
     gtk_label_set_xalign(GTK_LABEL(ports_label), 0.0);
     gtk_grid_attach(GTK_GRID(grid), ports_label, 0, row, 1, 1);
     
     GtkWidget* ports_entry = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(ports_entry), "Ex: 8080:80, 3306:3306");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(ports_entry), "e.g.: 8080:80, 3306:3306");
     gtk_grid_attach(GTK_GRID(grid), ports_entry, 1, row, 1, 1);
     g_object_set_data(G_OBJECT(dialog), "ports-entry", ports_entry);
     row++;
-    GtkWidget* env_label = gtk_label_new("Variáveis de Ambiente:");
+    GtkWidget* env_label = gtk_label_new("Environment Variables:");
     gtk_label_set_xalign(GTK_LABEL(env_label), 0.0);
     gtk_grid_attach(GTK_GRID(grid), env_label, 0, row, 1, 1);
     
     GtkWidget* env_entry = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(env_entry), "Ex: VAR1=valor1, VAR2=valor2");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(env_entry), "e.g.: VAR1=value1, VAR2=value2");
     gtk_grid_attach(GTK_GRID(grid), env_entry, 1, row, 1, 1);
     g_object_set_data(G_OBJECT(dialog), "env-entry", env_entry);
     row++;
-    GtkWidget* command_label = gtk_label_new("Comando:");
+    GtkWidget* command_label = gtk_label_new("Command:");
     gtk_label_set_xalign(GTK_LABEL(command_label), 0.0);
     gtk_grid_attach(GTK_GRID(grid), command_label, 0, row, 1, 1);
     
     GtkWidget* command_entry = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(command_entry), "Opcional - comando a executar no container");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(command_entry), "Optional - comando a executar no container");
     gtk_grid_attach(GTK_GRID(grid), command_entry, 1, row, 1, 1);
     g_object_set_data(G_OBJECT(dialog), "command-entry", command_entry);
     row++;
-    GtkWidget* interactive_check = gtk_check_button_new_with_label("Modo Interativo (-it)");
+    GtkWidget* interactive_check = gtk_check_button_new_with_label("Interactive Mode (-it)");
     gtk_grid_attach(GTK_GRID(grid), interactive_check, 1, row, 1, 1);
     g_object_set_data(G_OBJECT(dialog), "interactive-check", interactive_check);
     row++;
-    GtkWidget* detached_check = gtk_check_button_new_with_label("Modo Detached (-d) - Executar em background");
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(detached_check), TRUE); // Padrão: detached
+    GtkWidget* detached_check = gtk_check_button_new_with_label("Detached Mode (-d) - Run in background");
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(detached_check), TRUE); // Default: detached
     gtk_grid_attach(GTK_GRID(grid), detached_check, 1, row, 1, 1);
     g_object_set_data(G_OBJECT(dialog), "detached-check", detached_check);
     row++;
@@ -995,19 +995,19 @@ static void on_import_image_clicked(GtkMenuItem* menu_item, gpointer user_data) 
     GtkWidget* toplevel = gtk_widget_get_toplevel(data->tree_view);
     GtkWindow* parent_window = GTK_IS_WINDOW(toplevel) ? GTK_WINDOW(toplevel) : NULL;
     GtkWidget* dialog = gtk_file_chooser_dialog_new(
-        "Importar Imagem",
+        "Import Image",
         parent_window,
         GTK_FILE_CHOOSER_ACTION_OPEN,
-        "Cancelar", GTK_RESPONSE_CANCEL,
-        "Abrir", GTK_RESPONSE_ACCEPT,
+        "Cancel", GTK_RESPONSE_CANCEL,
+        "Open", GTK_RESPONSE_ACCEPT,
         NULL
     );
     GtkFileFilter* filter = gtk_file_filter_new();
-    gtk_file_filter_set_name(filter, "Arquivos Docker Image (*.tar)");
+    gtk_file_filter_set_name(filter, "Docker image files (*.tar)");
     gtk_file_filter_add_pattern(filter, "*.tar");
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
     filter = gtk_file_filter_new();
-    gtk_file_filter_set_name(filter, "Todos os arquivos");
+    gtk_file_filter_set_name(filter, "All files");
     gtk_file_filter_add_pattern(filter, "*");
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
     ImportImageData* import_data = g_new(ImportImageData, 1);
@@ -1026,7 +1026,7 @@ static void on_inspect_image_clicked(GtkMenuItem* menu_item, gpointer user_data)
     GtkTreeIter iter;
     
     if (!gtk_tree_selection_get_selected(selection, &model, &iter)) {
-        return; // Nenhuma linha selecionada
+        return; // No row selected
     }
     gchar* image_id = NULL;
     gtk_tree_model_get(model, &iter, 2, &image_id, -1);
@@ -1056,7 +1056,7 @@ static void on_remove_image_clicked(GtkMenuItem* menu_item, gpointer user_data) 
     GtkTreeIter iter;
     
     if (!gtk_tree_selection_get_selected(selection, &model, &iter)) {
-        return; // Nenhuma linha selecionada
+        return; // No row selected
     }
     gchar* image_id = NULL;
     gchar* repository = NULL;
@@ -1082,12 +1082,12 @@ static void on_remove_image_clicked(GtkMenuItem* menu_item, gpointer user_data) 
     }
     GtkWidget* toplevel = gtk_widget_get_toplevel(data->tree_view);
     GtkWindow* parent_window = GTK_IS_WINDOW(toplevel) ? GTK_WINDOW(toplevel) : NULL;
-    gchar* message = g_strdup_printf("Tem certeza que deseja remover a imagem '%s'?\n\nEsta ação não pode ser desfeita.", image_name);
+    gchar* message = g_strdup_printf("Are you sure you want to remove image '%s'?\n\nThis action cannot be undone.", image_name);
     GtkWidget* dialog = gtk_message_dialog_new(parent_window, GTK_DIALOG_MODAL, 
                                             GTK_MESSAGE_QUESTION, 
                                             GTK_BUTTONS_YES_NO, 
                                             "%s", message);
-    gtk_window_set_title(GTK_WINDOW(dialog), "Confirmar Remoção");
+    gtk_window_set_title(GTK_WINDOW(dialog), "Confirm Removal");
     g_free(message);
     RemoveImageData* confirm_data = g_new(RemoveImageData, 1);
     confirm_data->store = data->store;
@@ -1104,7 +1104,7 @@ static void on_remove_image_clicked(GtkMenuItem* menu_item, gpointer user_data) 
     g_free(image_name);
 }
 static gboolean on_button_press_event(GtkWidget* widget, GdkEventButton* event, gpointer user_data) {
-    if (event->type == GDK_BUTTON_PRESS && event->button == 3) { // Botão direito
+    if (event->type == GDK_BUTTON_PRESS && event->button == 3) { // Right button
         GtkWidget* menu = GTK_WIDGET(user_data);
         GtkTreeView* tree_view = GTK_TREE_VIEW(widget);
         GtkTreePath* path = NULL;
@@ -1129,7 +1129,7 @@ GtkWidget* create_images_table(void) {
                                               G_TYPE_STRING); // SIZE
     populate_docker_images_async(store);
     GtkWidget* search_entry = gtk_search_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Filtrar imagens...");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Filter images...");
     gtk_widget_set_margin_start(search_entry, 6);
     gtk_widget_set_margin_end(search_entry, 6);
     gtk_widget_set_margin_top(search_entry, 6);
@@ -1139,9 +1139,9 @@ GtkWidget* create_images_table(void) {
     gtk_tree_model_filter_set_visible_func(filter, list_filter_func, search_entry, NULL);
     g_signal_connect(search_entry, "search-changed", G_CALLBACK(on_search_changed), filter);
     GtkTreeModel* sort_model = gtk_tree_model_sort_new_with_model(GTK_TREE_MODEL(filter));
-    g_object_unref(filter); // sort_model mantém a referência
+    g_object_unref(filter); // sort_model keeps the reference
     GtkWidget* tree_view = gtk_tree_view_new_with_model(sort_model);
-    g_object_unref(sort_model); // TreeView mantém a referência
+    g_object_unref(sort_model); // TreeView keeps the reference
     GtkCellRenderer* renderer = gtk_cell_renderer_text_new();
     GtkTreeViewColumn* column = gtk_tree_view_column_new_with_attributes(
         "REPOSITORY", renderer, "text", 0, NULL);
@@ -1178,32 +1178,32 @@ GtkWidget* create_images_table(void) {
     menu_data->tree_view = tree_view;
     g_object_set_data_full(G_OBJECT(tree_view), "images-store", 
                           g_object_ref(store), g_object_unref);
-    GtkWidget* inspect_item = gtk_menu_item_new_with_label("Visualizar detalhes");
+    GtkWidget* inspect_item = gtk_menu_item_new_with_label("View details");
     g_signal_connect(inspect_item, "activate", G_CALLBACK(on_inspect_image_clicked), menu_data);
     gtk_menu_shell_append(GTK_MENU_SHELL(context_menu), inspect_item);
     gtk_widget_show(inspect_item);
     GtkWidget* separator = gtk_separator_menu_item_new();
     gtk_menu_shell_append(GTK_MENU_SHELL(context_menu), separator);
     gtk_widget_show(separator);
-    GtkWidget* create_container_item = gtk_menu_item_new_with_label("Criar container");
+    GtkWidget* create_container_item = gtk_menu_item_new_with_label("Create container");
     g_signal_connect(create_container_item, "activate", G_CALLBACK(on_create_container_clicked), menu_data);
     gtk_menu_shell_append(GTK_MENU_SHELL(context_menu), create_container_item);
     gtk_widget_show(create_container_item);
     separator = gtk_separator_menu_item_new();
     gtk_menu_shell_append(GTK_MENU_SHELL(context_menu), separator);
     gtk_widget_show(separator);
-    GtkWidget* export_item = gtk_menu_item_new_with_label("Exportar");
+    GtkWidget* export_item = gtk_menu_item_new_with_label("Export");
     g_signal_connect(export_item, "activate", G_CALLBACK(on_export_image_clicked), menu_data);
     gtk_menu_shell_append(GTK_MENU_SHELL(context_menu), export_item);
     gtk_widget_show(export_item);
-    GtkWidget* import_item = gtk_menu_item_new_with_label("Importar");
+    GtkWidget* import_item = gtk_menu_item_new_with_label("Import");
     g_signal_connect(import_item, "activate", G_CALLBACK(on_import_image_clicked), menu_data);
     gtk_menu_shell_append(GTK_MENU_SHELL(context_menu), import_item);
     gtk_widget_show(import_item);
     separator = gtk_separator_menu_item_new();
     gtk_menu_shell_append(GTK_MENU_SHELL(context_menu), separator);
     gtk_widget_show(separator);
-    GtkWidget* remove_item = gtk_menu_item_new_with_label("Remover");
+    GtkWidget* remove_item = gtk_menu_item_new_with_label("Remove");
     g_signal_connect(remove_item, "activate", G_CALLBACK(on_remove_image_clicked), menu_data);
     gtk_menu_shell_append(GTK_MENU_SHELL(context_menu), remove_item);
     gtk_widget_show(remove_item);

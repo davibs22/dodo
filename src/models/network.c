@@ -11,7 +11,7 @@ static void parse_and_populate_networks(GtkListStore* store, gchar* output) {
         GtkTreeIter iter;
         gtk_list_store_append(store, &iter);
         gtk_list_store_set(store, &iter,
-                           0, "Erro ao executar docker network ls",
+                           0, "Error running docker network ls",
                            1, "", 2, "", 3, "", -1);
         return;
     }

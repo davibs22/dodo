@@ -8,9 +8,9 @@ extern "C" {
 #endif
 
 /**
- * Cria e retorna um widget ScrolledWindow contendo a tabela de volumes do Docker.
+ * Creates and returns a ScrolledWindow widget containing the Docker volumes table.
  *
- * @return GtkWidget* ScrolledWindow contendo a TreeView de volumes
+ * @return GtkWidget* ScrolledWindow containing the volumes TreeView
  */
 GtkWidget* create_volumes_table(void);
 

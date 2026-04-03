@@ -82,15 +82,15 @@ static void on_volume_removed(gchar* output, gpointer user_data) {
     }
     if (data && data->parent_window) {
         if (success) {
-            gchar* message = g_strdup_printf("Volume '%s' removido com sucesso.", data->volume_name ? data->volume_name : "desconhecido");
-            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Sucesso", message);
+            gchar* message = g_strdup_printf("Volume '%s' removed successfully.", data->volume_name ? data->volume_name : "unknown");
+            show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Success", message);
             g_free(message);
         } else {
-            gchar* error_msg = output ? g_strdup(output) : g_strdup("Erro desconhecido ao remover o volume.");
-            gchar* message = g_strdup_printf("Erro ao remover volume '%s':\n%s", 
-                                                  data->volume_name ? data->volume_name : "desconhecido", 
+            gchar* error_msg = output ? g_strdup(output) : g_strdup("Error unknown ao remover o volume.");
+            gchar* message = g_strdup_printf("Error ao remover volume '%s':\n%s", 
+                                                  data->volume_name ? data->volume_name : "unknown", 
                                                   error_msg);
-            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Erro", message);
+            show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Error", message);
             g_free(message);
             g_free(error_msg);
         }
@@ -204,22 +204,22 @@ static void apply_json_syntax_highlighting(GtkTextBuffer* buffer, const gchar* j
     if (!buffer || !json_text) return;
     gtk_text_buffer_set_text(buffer, json_text, -1);
     GtkTextTag* tag_key = gtk_text_buffer_create_tag(buffer, "json_key",
-        "foreground", "#268bd2",  // Azul para chaves
+        "foreground", "#268bd2",  // Blue for keys
         NULL);
     GtkTextTag* tag_string = gtk_text_buffer_create_tag(buffer, "json_string",
-        "foreground", "#2aa198",  // Ciano para strings
+        "foreground", "#2aa198",  // Cyan for strings
         NULL);
     GtkTextTag* tag_number = gtk_text_buffer_create_tag(buffer, "json_number",
-        "foreground", "#d33682",  // Magenta para números
+        "foreground", "#d33682",  // Magenta for numbers
         NULL);
     GtkTextTag* tag_boolean = gtk_text_buffer_create_tag(buffer, "json_boolean",
-        "foreground", "#859900",  // Verde para booleanos
+        "foreground", "#859900",  // Green for booleans
         NULL);
     GtkTextTag* tag_null = gtk_text_buffer_create_tag(buffer, "json_null",
-        "foreground", "#dc322f",  // Vermelho para null
+        "foreground", "#dc322f",  // Red for null
         NULL);
     GtkTextTag* tag_delimiter = gtk_text_buffer_create_tag(buffer, "json_delimiter",
-        "foreground", "#586e75",  // Cinza para delimitadores
+        "foreground", "#586e75",  // Gray for delimiters
         "weight", PANGO_WEIGHT_BOLD,
         NULL);
     
@@ -313,7 +313,7 @@ static void apply_json_syntax_highlighting(GtkTextBuffer* buffer, const gchar* j
                     gtk_text_buffer_get_iter_at_offset(buffer, &start, num_start);
                     gtk_text_buffer_get_iter_at_offset(buffer, &end, num_end);
                     gtk_text_buffer_apply_tag(buffer, tag_number, &start, &end);
-                    i = num_end - 1; // Ajusta o índice
+                    i = num_end - 1; // Adjust index
                 }
             }
             continue;
@@ -326,7 +326,7 @@ static void apply_json_syntax_highlighting(GtkTextBuffer* buffer, const gchar* j
                 gtk_text_buffer_get_iter_at_offset(buffer, &start, i);
                 gtk_text_buffer_get_iter_at_offset(buffer, &end, i + 4);
                 gtk_text_buffer_apply_tag(buffer, tag_boolean, &start, &end);
-                i += 3; // Pula os caracteres processados
+                i += 3; // Skip processed characters
             }
             continue;
         }
@@ -372,10 +372,10 @@ static void on_volume_inspect_complete(gchar* output, gpointer user_data) {
         return;
     }
     GtkWidget* dialog = gtk_dialog_new_with_buttons(
-        "Detalhes do Volume",
+        "Volume Details",
         data->parent_window,
         GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-        "Fechar",
+        "Close",
         GTK_RESPONSE_CLOSE,
         NULL
     );
@@ -436,9 +436,9 @@ static void on_volume_inspect_complete(gchar* output, gpointer user_data) {
         apply_json_syntax_highlighting(buffer, formatted_output);
         g_free(formatted_output);
     } else {
-        gchar* error_msg = g_strdup_printf("Erro ao obter detalhes do volume '%s'.\n\n%s",
-                                           data->volume_name ? data->volume_name : "desconhecido",
-                                           output ? output : "Erro desconhecido.");
+        gchar* error_msg = g_strdup_printf("Error ao obter detalhes do volume '%s'.\n\n%s",
+                                           data->volume_name ? data->volume_name : "unknown",
+                                           output ? output : "Error unknown.");
         gtk_text_buffer_set_text(buffer, error_msg, -1);
         g_free(error_msg);
     }
@@ -460,7 +460,7 @@ static void on_inspect_volume_clicked(GtkMenuItem* menu_item, gpointer user_data
     GtkTreeIter iter;
     
     if (!gtk_tree_selection_get_selected(selection, &model, &iter)) {
-        return; // Nenhuma linha selecionada
+        return; // No row selected
     }
     gchar* volume_name = NULL;
     gtk_tree_model_get(model, &iter, 0, &volume_name, -1);
@@ -490,7 +490,7 @@ static void on_remove_volume_clicked(GtkMenuItem* menu_item, gpointer user_data)
     GtkTreeIter iter;
     
     if (!gtk_tree_selection_get_selected(selection, &model, &iter)) {
-        return; // Nenhuma linha selecionada
+        return; // No row selected
     }
     gchar* volume_name = NULL;
     gtk_tree_model_get(model, &iter, 0, &volume_name, -1);
@@ -501,12 +501,12 @@ static void on_remove_volume_clicked(GtkMenuItem* menu_item, gpointer user_data)
     }
     GtkWidget* toplevel = gtk_widget_get_toplevel(data->tree_view);
     GtkWindow* parent_window = GTK_IS_WINDOW(toplevel) ? GTK_WINDOW(toplevel) : NULL;
-    gchar* message = g_strdup_printf("Tem certeza que deseja remover o volume '%s'?\n\nEsta ação não pode ser desfeita.", volume_name);
+    gchar* message = g_strdup_printf("Are you sure you want to remove volume '%s'?\n\nThis action cannot be undone.", volume_name);
     GtkWidget* dialog = gtk_message_dialog_new(parent_window, GTK_DIALOG_MODAL, 
                                             GTK_MESSAGE_QUESTION, 
                                             GTK_BUTTONS_YES_NO, 
                                             "%s", message);
-    gtk_window_set_title(GTK_WINDOW(dialog), "Confirmar Remoção");
+    gtk_window_set_title(GTK_WINDOW(dialog), "Confirm Removal");
     g_free(message);
     RemoveVolumeData* confirm_data = g_new(RemoveVolumeData, 1);
     confirm_data->store = data->store;
@@ -519,7 +519,7 @@ static void on_remove_volume_clicked(GtkMenuItem* menu_item, gpointer user_data)
     g_free(volume_name);
 }
 static gboolean on_button_press_event(GtkWidget* widget, GdkEventButton* event, gpointer user_data) {
-    if (event->type == GDK_BUTTON_PRESS && event->button == 3) { // Botão direito
+    if (event->type == GDK_BUTTON_PRESS && event->button == 3) { // Right button
         GtkWidget* menu = GTK_WIDGET(user_data);
         GtkTreeView* tree_view = GTK_TREE_VIEW(widget);
         GtkTreePath* path = NULL;
@@ -543,7 +543,7 @@ GtkWidget* create_volumes_table(void) {
                                              G_TYPE_STRING); // MOUNTPOINT
     populate_docker_volumes_async(store);
     GtkWidget* search_entry = gtk_search_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Filtrar volumes...");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Filter volumes...");
     gtk_widget_set_margin_start(search_entry, 6);
     gtk_widget_set_margin_end(search_entry, 6);
     gtk_widget_set_margin_top(search_entry, 6);
@@ -553,9 +553,9 @@ GtkWidget* create_volumes_table(void) {
     gtk_tree_model_filter_set_visible_func(filter, list_filter_func, search_entry, NULL);
     g_signal_connect(search_entry, "search-changed", G_CALLBACK(on_search_changed), filter);
     GtkTreeModel* sort_model = gtk_tree_model_sort_new_with_model(GTK_TREE_MODEL(filter));
-    g_object_unref(filter); // sort_model mantém a referência
+    g_object_unref(filter); // sort_model keeps the reference
     GtkWidget* tree_view = gtk_tree_view_new_with_model(sort_model);
-    g_object_unref(sort_model); // TreeView mantém a referência
+    g_object_unref(sort_model); // TreeView keeps the reference
     GtkCellRenderer* renderer = gtk_cell_renderer_text_new();
     GtkTreeViewColumn* column = gtk_tree_view_column_new_with_attributes(
         "NAME", renderer, "text", 0, NULL);
@@ -586,14 +586,14 @@ GtkWidget* create_volumes_table(void) {
     menu_data->tree_view = tree_view;
     g_object_set_data_full(G_OBJECT(tree_view), "volumes-store", 
                           g_object_ref(store), g_object_unref);
-    GtkWidget* inspect_item = gtk_menu_item_new_with_label("Visualizar detalhes");
+    GtkWidget* inspect_item = gtk_menu_item_new_with_label("View details");
     g_signal_connect(inspect_item, "activate", G_CALLBACK(on_inspect_volume_clicked), menu_data);
     gtk_menu_shell_append(GTK_MENU_SHELL(context_menu), inspect_item);
     gtk_widget_show(inspect_item);
     GtkWidget* separator = gtk_separator_menu_item_new();
     gtk_menu_shell_append(GTK_MENU_SHELL(context_menu), separator);
     gtk_widget_show(separator);
-    GtkWidget* remove_item = gtk_menu_item_new_with_label("Remover");
+    GtkWidget* remove_item = gtk_menu_item_new_with_label("Remove");
     g_signal_connect(remove_item, "activate", G_CALLBACK(on_remove_volume_clicked), menu_data);
     gtk_menu_shell_append(GTK_MENU_SHELL(context_menu), remove_item);
     gtk_widget_show(remove_item);
@@ -610,4 +610,3 @@ GtkWidget* create_volumes_table(void) {
 
     return vbox;
 }
-

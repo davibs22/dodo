@@ -9,31 +9,31 @@ extern "C" {
 #endif
 
 /**
- * Popula um GtkListStore com os volumes do Docker (síncrono).
+ * Populates a GtkListStore with Docker volumes (synchronous).
  *
- * @param store O GtkListStore a ser populado (deve ter 4 colunas G_TYPE_STRING)
+ * @param store The GtkListStore to populate (must have 4 G_TYPE_STRING columns)
  */
 void populate_docker_volumes(GtkListStore* store);
 
 /**
- * Popula um GtkListStore com os volumes do Docker de forma assíncrona.
- * O store é limpo e repopulado quando os dados ficam prontos.
+ * Populates a GtkListStore with Docker volumes asynchronously.
+ * The store is cleared and repopulated when data is ready.
  *
- * @param store O GtkListStore a ser populado
+ * @param store The GtkListStore to populate
  */
 void populate_docker_volumes_async(GtkListStore* store);
 
 /**
- * Atualiza a tabela de volumes limpando e repopulando (síncrono).
+ * Refreshes the volumes table by clearing and repopulating (synchronous).
  *
- * @param store O GtkListStore a ser atualizado
+ * @param store The GtkListStore to update
  */
 void refresh_volumes_table(GtkListStore* store);
 
 /**
- * Atualiza a tabela de volumes de forma assíncrona.
+ * Refreshes the volumes table asynchronously.
  *
- * @param store O GtkListStore a ser atualizado
+ * @param store The GtkListStore to update
  */
 void refresh_volumes_table_async(GtkListStore* store);
 

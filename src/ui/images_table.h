@@ -8,9 +8,9 @@ extern "C" {
 #endif
 
 /**
- * Cria e retorna um widget ScrolledWindow contendo a tabela de imagens do Docker.
+ * Creates and returns a ScrolledWindow widget containing the Docker images table.
  * 
- * @return GtkWidget* ScrolledWindow contendo a TreeView de imagens
+ * @return GtkWidget* ScrolledWindow containing the images TreeView
  */
 GtkWidget* create_images_table(void);
 

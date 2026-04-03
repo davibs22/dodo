@@ -9,38 +9,38 @@ extern "C" {
 #endif
 
 /**
- * Popula um GtkTreeStore com os containers do Docker agrupados por docker compose.
- * ATENÇÃO: Esta função é SÍNCRONA e bloqueia a thread chamadora.
- * Prefira usar populate_docker_containers_async() para manter a UI responsiva.
+ * Populates a GtkTreeStore with Docker containers grouped by docker compose.
+ * WARNING: This function is SYNCHRONOUS and blocks the calling thread.
+ * Prefer using populate_docker_containers_async() to keep the UI responsive.
  * 
- * @param store O GtkTreeStore a ser populado (deve ter 10 colunas G_TYPE_STRING)
+ * @param store The GtkTreeStore to populate (must have 10 G_TYPE_STRING columns)
  */
 void populate_docker_containers(GtkTreeStore* store);
 
 /**
- * Popula um GtkTreeStore de forma ASSÍNCRONA.
- * A coleta de dados (comandos Docker) roda em thread separada.
- * A atualização do store é feita na thread principal do GTK.
- * O store é limpo e repopulado quando os dados ficam prontos.
+ * Populates a GtkTreeStore ASYNCHRONOUSLY.
+ * Data collection (Docker commands) runs on a separate thread.
+ * Store updates occur on the GTK main thread.
+ * The store is cleared and repopulated when data is ready.
  * 
- * @param store O GtkTreeStore a ser populado (deve ter 10 colunas G_TYPE_STRING)
+ * @param store The GtkTreeStore to populate (must have 10 G_TYPE_STRING columns)
  */
 void populate_docker_containers_async(GtkTreeStore* store);
 
 /**
- * Atualiza a tabela de containers limpando e repopulando de forma SÍNCRONA.
+ * Refreshes the containers table by clearing and repopulating SYNCHRONOUSLY.
  * 
- * @param store O GtkTreeStore a ser atualizado
+ * @param store The GtkTreeStore to update
  */
 void refresh_containers_table(GtkTreeStore* store);
 
 /**
- * Atualiza a tabela de containers de forma ASSÍNCRONA.
- * A coleta roda em background e o store é atualizado na thread principal.
- * Preserva o estado de expansão dos grupos compose se tree_view for fornecido.
+ * Refreshes the containers table ASYNCHRONOUSLY.
+ * Collection runs in the background and the store is updated on the main thread.
+ * Preserves compose group expansion state if tree_view is provided.
  * 
- * @param store O GtkTreeStore a ser atualizado
- * @param tree_view O GtkWidget da TreeView (pode ser NULL, mas o estado de expansão não será preservado)
+ * @param store The GtkTreeStore to update
+ * @param tree_view The TreeView GtkWidget (may be NULL; expansion state won't be preserved)
  */
 void refresh_containers_table_async(GtkTreeStore* store, GtkWidget* tree_view);
 

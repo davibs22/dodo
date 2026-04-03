@@ -9,31 +9,31 @@ extern "C" {
 #endif
 
 /**
- * Popula um GtkListStore com as networks do Docker (síncrono).
+ * Populates a GtkListStore with Docker networks (synchronous).
  * 
- * @param store O GtkListStore a ser populado (deve ter 4 colunas G_TYPE_STRING)
+ * @param store The GtkListStore to populate (must have 4 G_TYPE_STRING columns)
  */
 void populate_docker_networks(GtkListStore* store);
 
 /**
- * Popula um GtkListStore com as networks do Docker de forma assíncrona.
- * O store é limpo e repopulado quando os dados ficam prontos.
+ * Populates a GtkListStore with Docker networks asynchronously.
+ * The store is cleared and repopulated when data is ready.
  * 
- * @param store O GtkListStore a ser populado
+ * @param store The GtkListStore to populate
  */
 void populate_docker_networks_async(GtkListStore* store);
 
 /**
- * Atualiza a tabela de networks limpando e repopulando (síncrono).
+ * Refreshes the networks table by clearing and repopulating (synchronous).
  * 
- * @param store O GtkListStore a ser atualizado
+ * @param store The GtkListStore to update
  */
 void refresh_networks_table(GtkListStore* store);
 
 /**
- * Atualiza a tabela de networks de forma assíncrona.
+ * Refreshes the networks table asynchronously.
  * 
- * @param store O GtkListStore a ser atualizado
+ * @param store The GtkListStore to update
  */
 void refresh_networks_table_async(GtkListStore* store);
 

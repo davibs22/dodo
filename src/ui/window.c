@@ -18,8 +18,8 @@
 #define CHART_MAX_POINTS 60
 #define CHART_MAX_LINES 32
 #define CHART_HEIGHT 80
-#define CHART_DATA_INTERVAL_MS 3000   // Intervalo de coleta de dados (ms)
-#define CHART_ANIM_INTERVAL_MS 50     // Intervalo de animação (~20fps)
+#define CHART_DATA_INTERVAL_MS 3000   // Data collection interval (ms)
+#define CHART_ANIM_INTERVAL_MS 50     // Animation interval (~20fps)
 #define INITIAL_LOAD_DONE_KEY "dodo-initial-load-done"
 
 typedef struct {
@@ -39,9 +39,9 @@ typedef struct {
     CpuChartLine lines[CHART_MAX_LINES];
     gint num_lines;
     gint num_points;
-    gdouble anim_offset;      // 0.0 → 1.0, progresso do scroll entre coletas
-    gint64 total_updates;     // Total de coletas realizadas (para scroll do grid)
-    guint anim_timer_id;      // Timer de animação (50ms)
+    gdouble anim_offset;      // 0.0 -> 1.0, scroll progress between collections
+    gint64 total_updates;     // Total collections performed (for grid scrolling)
+    guint anim_timer_id;      // Animation timer (50ms)
 } CpuChartData;
 
 typedef struct {
@@ -50,9 +50,9 @@ typedef struct {
     gdouble points[CHART_MAX_POINTS];
     gint num_points;
     gdouble system_total_memory;
-    gdouble anim_offset;      // 0.0 → 1.0, progresso do scroll entre coletas
-    gint64 total_updates;     // Total de coletas realizadas (para scroll do grid)
-    guint anim_timer_id;      // Timer de animação (50ms)
+    gdouble anim_offset;      // 0.0 -> 1.0, scroll progress between collections
+    gint64 total_updates;     // Total collections performed (for grid scrolling)
+    guint anim_timer_id;      // Animation timer (50ms)
 } MemoryChartData;
 
 typedef struct {
@@ -61,9 +61,9 @@ typedef struct {
     gdouble read_points[CHART_MAX_POINTS];
     gdouble write_points[CHART_MAX_POINTS];
     gint num_points;
-    gdouble anim_offset;      // 0.0 → 1.0, progresso do scroll entre coletas
-    gint64 total_updates;     // Total de coletas realizadas (para scroll do grid)
-    guint anim_timer_id;      // Timer de animação (50ms)
+    gdouble anim_offset;      // 0.0 -> 1.0, scroll progress between collections
+    gint64 total_updates;     // Total collections performed (for grid scrolling)
+    guint anim_timer_id;      // Animation timer (50ms)
 } DiskIOChartData;
 
 typedef struct {
@@ -72,9 +72,9 @@ typedef struct {
     gdouble received_points[CHART_MAX_POINTS];
     gdouble sent_points[CHART_MAX_POINTS];
     gint num_points;
-    gdouble anim_offset;      // 0.0 → 1.0, progresso do scroll entre coletas
-    gint64 total_updates;     // Total de coletas realizadas (para scroll do grid)
-    guint anim_timer_id;      // Timer de animação (50ms)
+    gdouble anim_offset;      // 0.0 -> 1.0, scroll progress between collections
+    gint64 total_updates;     // Total collections performed (for grid scrolling)
+    guint anim_timer_id;      // Animation timer (50ms)
 } NetworkIOChartData;
 
 static void on_window_close(GtkWidget *widget, gpointer data) {
@@ -89,7 +89,7 @@ typedef struct {
 } ViewSwitcherData;
 typedef struct {
     GtkTreeStore *containers_store;
-    GtkWidget *containers_tree_view;  // Referência ao tree_view dos containers para preservar expansão
+    GtkWidget *containers_tree_view;  // Reference to containers tree_view to preserve expansion
     GtkListStore *images_store;
     GtkListStore *networks_store;
     GtkListStore *volumes_store;
@@ -688,7 +688,7 @@ static gboolean on_diskio_chart_draw(GtkWidget *widget, cairo_t *cr, gpointer us
             max_val = chart->write_points[p];
         }
     }
-    max_val *= 1.1;  // Adiciona 10% de margem no topo
+    max_val *= 1.1;  // Add 10% top margin
     if (max_val <= 0) max_val = 1.0;
 
     gint n = chart->num_points;
@@ -917,7 +917,7 @@ static gdouble get_system_total_memory(void) {
     
     if (!g_file_get_contents("/proc/meminfo", &contents, &length, &error)) {
         if (error) {
-            g_warning("Erro ao ler /proc/meminfo: %s", error->message);
+            g_warning("Error reading /proc/meminfo: %s", error->message);
             g_error_free(error);
         }
         return 0.0;
@@ -1263,7 +1263,7 @@ static gboolean on_networkio_chart_draw(GtkWidget *widget, cairo_t *cr, gpointer
             max_val = chart->sent_points[p];
         }
     }
-    max_val *= 1.1;  // Adiciona 10% de margem no topo
+    max_val *= 1.1;  // Add 10% top margin
     if (max_val <= 0) max_val = 1.0;
 
     gint n = chart->num_points;
@@ -1479,7 +1479,7 @@ GtkWidget* create_main_window(int argc, char *argv[]) {
     gtk_stack_set_transition_duration(GTK_STACK(stack), 300);
     container_view = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     GtkWidget* metrics_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_box_set_homogeneous(GTK_BOX(metrics_box), TRUE);  // Distribui espaço igualmente
+    gtk_box_set_homogeneous(GTK_BOX(metrics_box), TRUE);  // Distribute space evenly
     gtk_widget_set_margin_start(metrics_box, 12);
     gtk_widget_set_margin_end(metrics_box, 12);
     gtk_widget_set_margin_top(metrics_box, 12);
@@ -1488,7 +1488,7 @@ GtkWidget* create_main_window(int argc, char *argv[]) {
     gtk_frame_set_shadow_type(GTK_FRAME(cpu_card), GTK_SHADOW_NONE);
     gtk_widget_set_margin_start(cpu_card, 0);
     gtk_widget_set_margin_end(cpu_card, 6);
-    gtk_widget_set_hexpand(cpu_card, TRUE);  // Permite expansão horizontal igual
+    gtk_widget_set_hexpand(cpu_card, TRUE);  // Allow equal horizontal expansion
     gtk_widget_set_margin_top(cpu_card, 0);
     gtk_widget_set_margin_bottom(cpu_card, 0);
     gtk_widget_set_name(cpu_card, "metric-card");
@@ -1529,7 +1529,7 @@ GtkWidget* create_main_window(int argc, char *argv[]) {
     gtk_frame_set_shadow_type(GTK_FRAME(memory_card), GTK_SHADOW_NONE);
     gtk_widget_set_margin_start(memory_card, 6);
     gtk_widget_set_margin_end(memory_card, 6);
-    gtk_widget_set_hexpand(memory_card, TRUE);  // Permite expansão horizontal igual
+    gtk_widget_set_hexpand(memory_card, TRUE);  // Allow equal horizontal expansion
     gtk_widget_set_margin_top(memory_card, 0);
     gtk_widget_set_margin_bottom(memory_card, 0);
     gtk_widget_set_name(memory_card, "metric-card");
@@ -1571,7 +1571,7 @@ GtkWidget* create_main_window(int argc, char *argv[]) {
     gtk_frame_set_shadow_type(GTK_FRAME(diskio_card), GTK_SHADOW_NONE);
     gtk_widget_set_margin_start(diskio_card, 6);
     gtk_widget_set_margin_end(diskio_card, 6);
-    gtk_widget_set_hexpand(diskio_card, TRUE);  // Permite expansão horizontal igual
+    gtk_widget_set_hexpand(diskio_card, TRUE);  // Allow equal horizontal expansion
     gtk_widget_set_margin_top(diskio_card, 0);
     gtk_widget_set_margin_bottom(diskio_card, 0);
     gtk_widget_set_name(diskio_card, "metric-card");
@@ -1598,8 +1598,8 @@ GtkWidget* create_main_window(int argc, char *argv[]) {
     GtkWidget* legend_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_widget_set_margin_top(legend_box, 4);
     gtk_widget_set_margin_bottom(legend_box, 4);
-    GtkWidget* read_legend = create_legend_item("Read", 0.2, 0.6, 1.0);  // Azul
-    GtkWidget* write_legend = create_legend_item("Write", 1.0, 0.6, 0.2);  // Laranja
+    GtkWidget* read_legend = create_legend_item("Read", 0.2, 0.6, 1.0);  // Blue
+    GtkWidget* write_legend = create_legend_item("Write", 1.0, 0.6, 0.2);  // Orange
     gtk_box_pack_start(GTK_BOX(legend_box), read_legend, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(legend_box), write_legend, FALSE, FALSE, 0);
     GtkWidget* diskio_usage_label = gtk_label_new("0.00 MB/s read / 0.00 MB/s write");
@@ -1620,7 +1620,7 @@ GtkWidget* create_main_window(int argc, char *argv[]) {
     gtk_frame_set_shadow_type(GTK_FRAME(networkio_card), GTK_SHADOW_NONE);
     gtk_widget_set_margin_start(networkio_card, 6);
     gtk_widget_set_margin_end(networkio_card, 0);
-    gtk_widget_set_hexpand(networkio_card, TRUE);  // Permite expansão horizontal igual
+    gtk_widget_set_hexpand(networkio_card, TRUE);  // Allow equal horizontal expansion
     gtk_widget_set_margin_top(networkio_card, 0);
     gtk_widget_set_margin_bottom(networkio_card, 0);
     gtk_widget_set_name(networkio_card, "metric-card");
@@ -1647,8 +1647,8 @@ GtkWidget* create_main_window(int argc, char *argv[]) {
     GtkWidget* networkio_legend_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_widget_set_margin_top(networkio_legend_box, 4);
     gtk_widget_set_margin_bottom(networkio_legend_box, 4);
-    GtkWidget* received_legend = create_legend_item("Received", 0.2, 0.8, 0.4);  // Verde
-    GtkWidget* sent_legend = create_legend_item("Sent", 0.6, 0.4, 0.8);  // Roxo
+    GtkWidget* received_legend = create_legend_item("Received", 0.2, 0.8, 0.4);  // Green
+    GtkWidget* sent_legend = create_legend_item("Sent", 0.6, 0.4, 0.8);  // Purple
     gtk_box_pack_start(GTK_BOX(networkio_legend_box), received_legend, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(networkio_legend_box), sent_legend, FALSE, FALSE, 0);
     GtkWidget* networkio_usage_label = gtk_label_new("0.00 MB/s received / 0.00 MB/s sent");
