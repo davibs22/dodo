@@ -194,6 +194,21 @@ static gchar* get_splash_image_path(void) {
 
     return NULL;
 }
+static gchar* get_logo_path(void) {
+    gchar *relative_path = g_build_filename("assets", "logo.svg", NULL);
+    if (g_file_test(relative_path, G_FILE_TEST_EXISTS)) {
+        return relative_path;
+    }
+    g_free(relative_path);
+
+    gchar *install_path = g_build_filename("/usr/share/dodo", "assets", "logo.svg", NULL);
+    if (g_file_test(install_path, G_FILE_TEST_EXISTS)) {
+        return install_path;
+    }
+    g_free(install_path);
+
+    return NULL;
+}
 static GtkWidget* create_splash_window(void) {
     GtkWidget *splash_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(splash_window), "Dodo");
@@ -1359,6 +1374,7 @@ static gboolean networkio_chart_anim_tick(gpointer user_data) {
 static void on_about_clicked(GtkButton *button, gpointer user_data) {
     GtkWindow *window = GTK_WINDOW(user_data);
     GtkWidget *about_dialog;
+    gchar *logo_path;
     about_dialog = gtk_about_dialog_new();
     gtk_window_set_transient_for(GTK_WINDOW(about_dialog), window);
     gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), "Dodo");
@@ -1367,6 +1383,21 @@ static void on_about_clicked(GtkButton *button, gpointer user_data) {
                                   "A GTK3 application to manage Docker containers");
     gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog), 
                                    "Copyright © 2026 Davi Bomfim Santiago");
+
+    logo_path = get_logo_path();
+    if (logo_path && g_file_test(logo_path, G_FILE_TEST_EXISTS)) {
+        GError *error = NULL;
+        GdkPixbuf *logo_pixbuf = gdk_pixbuf_new_from_file_at_scale(logo_path, 96, 96, TRUE, &error);
+        if (logo_pixbuf) {
+            gtk_about_dialog_set_logo(GTK_ABOUT_DIALOG(about_dialog), logo_pixbuf);
+            g_object_unref(logo_pixbuf);
+        }
+        if (error) {
+            g_error_free(error);
+        }
+    }
+    g_free(logo_path);
+
     g_signal_connect(about_dialog, "response", G_CALLBACK(gtk_widget_destroy), NULL);
     gtk_widget_show_all(about_dialog);
 }
