@@ -29,7 +29,7 @@ This produces the `dodo` executable.
 To run the program:
 
 ```bash
-./dodo
+./dist/dodo
 ```
 
 ## Clean

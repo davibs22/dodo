@@ -3,7 +3,7 @@ CC = gcc
 CXXFLAGS = -std=c++11 -Wall
 CFLAGS = -Wall
 GTKFLAGS = `pkg-config --cflags --libs gtk+-3.0`
-TARGET = dodo
+TARGET = dist/dodo
 CPP_SOURCE = main.cpp
 
 # Lista todos os arquivos C fonte
@@ -24,12 +24,13 @@ OBJECTS = $(C_SOURCES:.c=.o)
 all: $(TARGET)
 
 $(TARGET): $(CPP_SOURCE) $(OBJECTS)
+	mkdir -p dist
 	$(CXX) $(CXXFLAGS) -o $(TARGET) $(CPP_SOURCE) $(OBJECTS) $(GTKFLAGS) -lm
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(GTKFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(TARGET) $(OBJECTS)
+	rm -rf dist $(OBJECTS)
 
 .PHONY: all clean
