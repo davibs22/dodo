@@ -86,8 +86,8 @@ static void on_volume_removed(gchar* output, gpointer user_data) {
             show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Success", message);
             g_free(message);
         } else {
-            gchar* error_msg = output ? g_strdup(output) : g_strdup("Error unknown ao remover o volume.");
-            gchar* message = g_strdup_printf("Error ao remover volume '%s':\n%s", 
+            gchar* error_msg = output ? g_strdup(output) : g_strdup("Unknown error while removing volume.");
+            gchar* message = g_strdup_printf("Error removing volume '%s':\n%s", 
                                                   data->volume_name ? data->volume_name : "unknown", 
                                                   error_msg);
             show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Error", message);
@@ -436,9 +436,9 @@ static void on_volume_inspect_complete(gchar* output, gpointer user_data) {
         apply_json_syntax_highlighting(buffer, formatted_output);
         g_free(formatted_output);
     } else {
-        gchar* error_msg = g_strdup_printf("Error ao obter detalhes do volume '%s'.\n\n%s",
+        gchar* error_msg = g_strdup_printf("Error fetching details for volume '%s'.\n\n%s",
                                            data->volume_name ? data->volume_name : "unknown",
-                                           output ? output : "Error unknown.");
+                                           output ? output : "Unknown error.");
         gtk_text_buffer_set_text(buffer, error_msg, -1);
         g_free(error_msg);
     }
