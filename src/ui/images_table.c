@@ -108,7 +108,7 @@ static void on_image_removed(gchar* output, gpointer user_data) {
             g_free(message);
         } else {
             gchar* error_msg = output ? g_strdup(output) : g_strdup("Unknown error while removing image.");
-            gchar* message = g_strdup_printf("Error ao remover imagem '%s':\n%s", 
+            gchar* message = g_strdup_printf("Error removing image '%s':\n%s", 
                                                   data->image_name ? data->image_name : data->image_id ? data->image_id : "unknown", 
                                                   error_msg);
             show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Error", message);
@@ -460,9 +460,9 @@ static void on_image_inspect_complete(gchar* output, gpointer user_data) {
         apply_json_syntax_highlighting(buffer, formatted_output);
         g_free(formatted_output);
     } else {
-        gchar* error_msg = g_strdup_printf("Error ao obter detalhes da imagem '%s'.\n\n%s",
+        gchar* error_msg = g_strdup_printf("Error fetching details for image '%s'.\n\n%s",
                                            data->image_id ? data->image_id : "unknown",
-                                           output ? output : "Error desconhecido.");
+                                           output ? output : "Unknown error.");
         gtk_text_buffer_set_text(buffer, error_msg, -1);
         g_free(error_msg);
     }
@@ -531,8 +531,8 @@ static void on_image_exported(gchar* output, gpointer user_data) {
             show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Success", message);
             g_free(message);
         } else {
-            gchar* error_msg = output ? g_strdup(output) : g_strdup("Error desconhecido ao exportar a imagem.");
-            gchar* message = g_strdup_printf("Error ao exportar imagem '%s':\n%s", 
+            gchar* error_msg = output ? g_strdup(output) : g_strdup("Unknown error while exporting the image.");
+            gchar* message = g_strdup_printf("Error exporting image '%s':\n%s", 
                                               data->image_name ? data->image_name : data->image_id ? data->image_id : "unknown", 
                                               error_msg);
             show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Error", message);
@@ -575,8 +575,8 @@ static void on_image_imported(gchar* output, gpointer user_data) {
         if (success) {
             show_message_dialog(data->parent_window, GTK_MESSAGE_INFO, "Success", "Image imported successfully.");
         } else {
-            gchar* error_msg = output ? g_strdup(output) : g_strdup("Error desconhecido ao importar a imagem.");
-            gchar* message = g_strdup_printf("Error ao importar imagem:\n%s", error_msg);
+            gchar* error_msg = output ? g_strdup(output) : g_strdup("Unknown error while importing the image.");
+            gchar* message = g_strdup_printf("Error importing image:\n%s", error_msg);
             show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Error", message);
             g_free(message);
             g_free(error_msg);
@@ -600,7 +600,7 @@ static void on_export_file_dialog_response(GtkDialog* dialog, gint response_id, 
         gchar* filename = gtk_file_chooser_get_filename(chooser);
         
         if (filename) {
-            gchar* loading_message = g_strdup_printf("Exportando imagem '%s'...\nIsso pode levar alguns minutos.", 
+            gchar* loading_message = g_strdup_printf("Exporting image '%s'...\nThis may take a few minutes.", 
                                                      data->image_name ? data->image_name : data->image_id ? data->image_id : "unknown");
             data->loading_dialog = create_loading_dialog(data->parent_window, loading_message);
             g_free(loading_message);
@@ -763,8 +763,8 @@ static void on_container_created(gchar* output, gpointer user_data) {
             g_free(message);
             g_free(container_id_str);
         } else {
-            gchar* error_msg = output ? g_strdup(output) : g_strdup("Error desconhecido ao criar o container.");
-            gchar* message = g_strdup_printf("Error ao criar container a partir da imagem '%s':\n%s", 
+            gchar* error_msg = output ? g_strdup(output) : g_strdup("Unknown error while creating the container.");
+            gchar* message = g_strdup_printf("Error creating container from image '%s':\n%s", 
                                               data->image_name ? data->image_name : data->image_id ? data->image_id : "unknown", 
                                               error_msg);
             show_message_dialog(data->parent_window, GTK_MESSAGE_ERROR, "Error", message);
@@ -959,7 +959,7 @@ static void on_create_container_clicked(GtkMenuItem* menu_item, gpointer user_da
     gtk_grid_attach(GTK_GRID(grid), command_label, 0, row, 1, 1);
     
     GtkWidget* command_entry = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(command_entry), "Optional - comando a executar no container");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(command_entry), "Optional - command to run in the container");
     gtk_grid_attach(GTK_GRID(grid), command_entry, 1, row, 1, 1);
     g_object_set_data(G_OBJECT(dialog), "command-entry", command_entry);
     row++;
