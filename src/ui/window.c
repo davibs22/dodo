@@ -20,6 +20,7 @@
 #define CHART_HEIGHT 80
 #define CHART_DATA_INTERVAL_MS 3000   // Intervalo de coleta de dados (ms)
 #define CHART_ANIM_INTERVAL_MS 50     // Intervalo de animação (~20fps)
+#define INITIAL_LOAD_DONE_KEY "dodo-initial-load-done"
 
 typedef struct {
     gdouble r, g, b;
@@ -93,6 +94,48 @@ typedef struct {
     GtkListStore *networks_store;
     GtkListStore *volumes_store;
 } TableStoresData;
+typedef struct {
+    TableStoresData *stores_data;
+    GtkWidget *main_window;
+    GtkWidget *splash_window;
+} InitialSplashData;
+
+static gboolean is_store_initial_load_done(gpointer store) {
+    if (store == NULL) {
+        return TRUE;
+    }
+
+    return GPOINTER_TO_INT(g_object_get_data(G_OBJECT(store), INITIAL_LOAD_DONE_KEY));
+}
+
+static gboolean on_check_initial_data_loaded(gpointer user_data) {
+    InitialSplashData *data = (InitialSplashData *)user_data;
+
+    if (data == NULL || data->stores_data == NULL) {
+        return G_SOURCE_REMOVE;
+    }
+
+    gboolean containers_ready = is_store_initial_load_done(data->stores_data->containers_store);
+    gboolean images_ready = is_store_initial_load_done(data->stores_data->images_store);
+    gboolean networks_ready = is_store_initial_load_done(data->stores_data->networks_store);
+    gboolean volumes_ready = is_store_initial_load_done(data->stores_data->volumes_store);
+
+    if (!containers_ready || !images_ready || !networks_ready || !volumes_ready) {
+        return G_SOURCE_CONTINUE;
+    }
+
+    if (data->splash_window) {
+        gtk_widget_destroy(data->splash_window);
+    }
+
+    if (data->main_window) {
+        gtk_widget_show_all(data->main_window);
+    }
+
+    g_free(data);
+    return G_SOURCE_REMOVE;
+}
+
 static void update_button_icon(GtkWidget *button);
 static void on_stack_visible_child_changed(GtkStack *stack, GParamSpec *pspec, gpointer user_data) {
     ViewSwitcherData *data = (ViewSwitcherData *)user_data;
@@ -135,6 +178,50 @@ static gchar* get_icon_path(const gchar *icon_filename) {
     g_free(install_path);
     
     return NULL;
+}
+static gchar* get_splash_image_path(void) {
+    gchar *relative_path = g_build_filename("assets", "splash-screen.png", NULL);
+    if (g_file_test(relative_path, G_FILE_TEST_EXISTS)) {
+        return relative_path;
+    }
+    g_free(relative_path);
+
+    gchar *install_path = g_build_filename("/usr/share/dodo", "assets", "splash-screen.png", NULL);
+    if (g_file_test(install_path, G_FILE_TEST_EXISTS)) {
+        return install_path;
+    }
+    g_free(install_path);
+
+    return NULL;
+}
+static GtkWidget* create_splash_window(void) {
+    GtkWidget *splash_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(splash_window), "Dodo");
+    gtk_window_set_position(GTK_WINDOW(splash_window), GTK_WIN_POS_CENTER);
+    gtk_window_set_resizable(GTK_WINDOW(splash_window), FALSE);
+    gtk_window_set_decorated(GTK_WINDOW(splash_window), FALSE);
+    gtk_window_set_deletable(GTK_WINDOW(splash_window), FALSE);
+
+    GtkWidget *splash_image = gtk_image_new();
+    gchar *splash_image_path = get_splash_image_path();
+    if (splash_image_path && g_file_test(splash_image_path, G_FILE_TEST_EXISTS)) {
+        GError *error = NULL;
+        GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file_at_scale(splash_image_path, 420, -1, TRUE, &error);
+        if (pixbuf) {
+            gint width = gdk_pixbuf_get_width(pixbuf);
+            gint height = gdk_pixbuf_get_height(pixbuf);
+            gtk_window_set_default_size(GTK_WINDOW(splash_window), width, height);
+            gtk_image_set_from_pixbuf(GTK_IMAGE(splash_image), pixbuf);
+            g_object_unref(pixbuf);
+        }
+        if (error) {
+            g_error_free(error);
+        }
+    }
+    g_free(splash_image_path);
+
+    gtk_container_add(GTK_CONTAINER(splash_window), splash_image);
+    return splash_window;
 }
 static gboolean is_dark_theme(void) {
     GtkSettings *settings = gtk_settings_get_default();
@@ -1288,6 +1375,7 @@ GtkWidget* create_main_window(int argc, char *argv[]) {
     GtkWidget *window;
     GtkWidget *header_bar;
     GtkWidget *stack;
+    GtkWidget *splash_window;
     GtkWidget *switcher_box;
     GtkWidget *container_view;
     GtkWidget *images_view;
@@ -1659,8 +1747,14 @@ GtkWidget* create_main_window(int argc, char *argv[]) {
     box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_pack_start(GTK_BOX(box), stack, TRUE, TRUE, 0);
     gtk_container_add(GTK_CONTAINER(window), box);
+    splash_window = create_splash_window();
+    InitialSplashData *initial_splash_data = g_new0(InitialSplashData, 1);
+    initial_splash_data->stores_data = stores_data;
+    initial_splash_data->main_window = window;
+    initial_splash_data->splash_window = splash_window;
+    g_timeout_add(100, on_check_initial_data_loaded, initial_splash_data);
     g_signal_connect(window, "destroy", G_CALLBACK(on_window_close), NULL);
-    gtk_widget_show_all(window);
+    gtk_widget_show_all(splash_window);
     
     return window;
 }

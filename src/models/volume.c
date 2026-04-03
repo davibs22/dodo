@@ -3,6 +3,8 @@
 #include <string.h>
 #include <glib.h>
 
+#define INITIAL_LOAD_DONE_KEY "dodo-initial-load-done"
+
 static void parse_and_populate_volumes(GtkListStore* store, gchar* output) {
     gtk_list_store_clear(store);
     
@@ -46,11 +48,13 @@ void populate_docker_volumes(GtkListStore* store) {
 static void on_volumes_data_ready(gchar* output, gpointer user_data) {
     GtkListStore* store = GTK_LIST_STORE(user_data);
     parse_and_populate_volumes(store, output);
+    g_object_set_data(G_OBJECT(store), INITIAL_LOAD_DONE_KEY, GINT_TO_POINTER(TRUE));
     g_free(output);
     g_object_unref(store);
 }
 
 void populate_docker_volumes_async(GtkListStore* store) {
+    g_object_set_data(G_OBJECT(store), INITIAL_LOAD_DONE_KEY, GINT_TO_POINTER(FALSE));
     g_object_ref(store);
     execute_command_async(
         "docker volume ls --format '{{.Name}}\\t{{.Driver}}\\t{{.Scope}}\\t{{.Mountpoint}}'",

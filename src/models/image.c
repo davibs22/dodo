@@ -2,6 +2,8 @@
 #include "../docker/docker_command.h"
 #include <string.h>
 #include <glib.h>
+
+#define INITIAL_LOAD_DONE_KEY "dodo-initial-load-done"
 static void parse_and_populate_images(GtkListStore* store, gchar* output) {
     gtk_list_store_clear(store);
     
@@ -45,11 +47,13 @@ void populate_docker_images(GtkListStore* store) {
 static void on_images_data_ready(gchar* output, gpointer user_data) {
     GtkListStore* store = GTK_LIST_STORE(user_data);
     parse_and_populate_images(store, output);
+    g_object_set_data(G_OBJECT(store), INITIAL_LOAD_DONE_KEY, GINT_TO_POINTER(TRUE));
     g_free(output);
     g_object_unref(store);
 }
 
 void populate_docker_images_async(GtkListStore* store) {
+    g_object_set_data(G_OBJECT(store), INITIAL_LOAD_DONE_KEY, GINT_TO_POINTER(FALSE));
     g_object_ref(store);
     execute_command_async(
         "docker images --format '{{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedSince}}\t{{.Size}}'",

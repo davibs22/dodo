@@ -4,6 +4,8 @@
 #include <string.h>
 #include <glib.h>
 #include <gio/gio.h>
+
+#define INITIAL_LOAD_DONE_KEY "dodo-initial-load-done"
 typedef struct {
     gchar* id;
     gchar* image;
@@ -395,6 +397,7 @@ static void on_containers_collected(GObject* source_object,
     ContainersCollectedData* data = g_task_propagate_pointer(G_TASK(res), &error);
     
     if (data == NULL) {
+        g_object_set_data(G_OBJECT(store), INITIAL_LOAD_DONE_KEY, GINT_TO_POINTER(TRUE));
         if (error) {
             g_warning("populate_docker_containers_async: %s", error->message);
             g_error_free(error);
@@ -405,6 +408,7 @@ static void on_containers_collected(GObject* source_object,
         return;
     }
     apply_data_to_store(store, data);
+    g_object_set_data(G_OBJECT(store), INITIAL_LOAD_DONE_KEY, GINT_TO_POINTER(TRUE));
     restore_expansion_state(refresh_data->tree_view, store, refresh_data->expansion_state);
     free_collected_data(data);
     free_expansion_state(refresh_data->expansion_state);
@@ -413,6 +417,7 @@ static void on_containers_collected(GObject* source_object,
 }
 
 void populate_docker_containers_async(GtkTreeStore* store) {
+    g_object_set_data(G_OBJECT(store), INITIAL_LOAD_DONE_KEY, GINT_TO_POINTER(FALSE));
     g_object_ref(store);
     RefreshContainersData* refresh_data = g_new(RefreshContainersData, 1);
     refresh_data->store = store;
