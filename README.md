@@ -22,14 +22,14 @@ Run the following command to compile the project:
 make
 ```
 
-This produces the `janela_gtk3` executable.
+This produces the `dodo` executable.
 
 ## Execution
 
 To run the program:
 
 ```bash
-./janela_gtk3
+./dodo
 ```
 
 ## Clean
