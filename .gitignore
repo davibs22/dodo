@@ -1,0 +1,24 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.env
+
+# Build artifacts
+dist/
+build/
+*.log
+
+# Misc
+*.tmp
+*.bak
