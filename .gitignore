@@ -22,3 +22,5 @@ build/
 # Misc
 *.tmp
 *.bak
+
+*.o
