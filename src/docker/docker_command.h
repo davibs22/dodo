@@ -61,6 +61,8 @@ struct CommandStream {
     GInputStream* stdout_stream;
     GDataInputStream* data_stream;
     GSource* watch_source;
+    GThread* thread;
+    guint end_idle_id;
     gboolean is_running;
     CommandStreamCallback callback;
     gpointer user_data;

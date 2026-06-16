@@ -20,24 +20,21 @@ void populate_docker_containers(GtkTreeStore* store);
 /**
  * Populates a GtkTreeStore ASYNCHRONOUSLY.
  * Data collection (Docker commands) runs on a separate thread.
- * Store updates occur on the GTK main thread.
- * The store is cleared and repopulated when data is ready.
+ * Store updates occur on the GTK main thread using incremental sync.
  * 
  * @param store The GtkTreeStore to populate (must have 10 G_TYPE_STRING columns)
  */
 void populate_docker_containers_async(GtkTreeStore* store);
 
 /**
- * Refreshes the containers table by clearing and repopulating SYNCHRONOUSLY.
+ * Refreshes the containers table incrementally (preserves scroll and expansion).
  * 
  * @param store The GtkTreeStore to update
  */
 void refresh_containers_table(GtkTreeStore* store);
 
 /**
- * Refreshes the containers table ASYNCHRONOUSLY.
- * Collection runs in the background and the store is updated on the main thread.
- * Preserves compose group expansion state if tree_view is provided.
+ * Refreshes the containers table ASYNCHRONOUSLY with incremental sync.
  * 
  * @param store The GtkTreeStore to update
  * @param tree_view The TreeView GtkWidget (may be NULL; expansion state won't be preserved)

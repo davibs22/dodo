@@ -72,16 +72,22 @@ typedef struct {
     gchar* chunk;
     CommandStreamCallback callback;
     gpointer user_data;
+    CommandStream* stream;
 } StreamChunkData;
 static gboolean deliver_stream_chunk(gpointer data) {
     StreamChunkData* chunk_data = (StreamChunkData*)data;
-    
+    CommandStream* stream = chunk_data->stream;
+
+    if (stream) {
+        stream->end_idle_id = 0;
+    }
+
     if (chunk_data->callback) {
         chunk_data->callback(chunk_data->chunk, chunk_data->user_data);
-    } else {
-        if (chunk_data->chunk) g_free(chunk_data->chunk);
+    } else if (chunk_data->chunk) {
+        g_free(chunk_data->chunk);
     }
-    
+
     g_free(chunk_data);
     return G_SOURCE_REMOVE;
 }
@@ -111,28 +117,23 @@ static gpointer stream_reader_worker(gpointer data) {
         chunk_data->chunk = g_strdup(buffer);
         chunk_data->callback = cmd_stream->callback;
         chunk_data->user_data = cmd_stream->user_data;
-        if (cmd_stream->user_data) {
+        chunk_data->stream = NULL;
+        if (cmd_stream->callback && cmd_stream->user_data) {
             g_idle_add(deliver_stream_chunk, chunk_data);
         } else {
             g_free(chunk_data->chunk);
             g_free(chunk_data);
         }
     }
-    cmd_stream->is_running = FALSE;
     if (cmd_stream->callback && cmd_stream->user_data) {
         StreamChunkData* chunk_data = g_new(StreamChunkData, 1);
-        chunk_data->chunk = NULL; // NULL indicates end of stream
+        chunk_data->chunk = NULL;
         chunk_data->callback = cmd_stream->callback;
         chunk_data->user_data = cmd_stream->user_data;
-        g_idle_add(deliver_stream_chunk, chunk_data);
+        chunk_data->stream = cmd_stream;
+        cmd_stream->end_idle_id = g_idle_add(deliver_stream_chunk, chunk_data);
     }
-    if (cmd_stream->stdout_stream) {
-        g_input_stream_close(cmd_stream->stdout_stream, NULL, NULL);
-        g_object_unref(cmd_stream->stdout_stream);
-        cmd_stream->stdout_stream = NULL;
-    }
-    g_free(cmd_stream);
-    
+
     return NULL;
 }
 
@@ -166,23 +167,42 @@ CommandStream* execute_command_stream(const gchar* command, CommandStreamCallbac
     cmd_stream->subprocess = subprocess;
     cmd_stream->stdout_stream = g_object_ref(stdout_stream); // Keep reference
     cmd_stream->data_stream = NULL; // Not used in this implementation
-    cmd_stream->watch_source = NULL; // Not used in this implementation
+    cmd_stream->watch_source = NULL;
+    cmd_stream->thread = NULL;
+    cmd_stream->end_idle_id = 0;
     cmd_stream->is_running = TRUE;
     cmd_stream->callback = callback;
     cmd_stream->user_data = user_data;
-    g_thread_new("docker-stream-reader", stream_reader_worker, cmd_stream);
-    
+    cmd_stream->thread = g_thread_new("docker-stream-reader", stream_reader_worker, cmd_stream);
+
     return cmd_stream;
 }
 
 void command_stream_stop(CommandStream* stream) {
     if (!stream) return;
+
+    stream->is_running = FALSE;
     stream->callback = NULL;
     stream->user_data = NULL;
-    stream->is_running = FALSE;
+
     if (stream->subprocess) {
         g_subprocess_force_exit(stream->subprocess);
+    }
+    if (stream->thread) {
+        g_thread_join(stream->thread);
+        stream->thread = NULL;
+    }
+    if (stream->end_idle_id > 0) {
+        g_source_remove(stream->end_idle_id);
+        stream->end_idle_id = 0;
+    }
+    if (stream->subprocess) {
         g_object_unref(stream->subprocess);
         stream->subprocess = NULL;
     }
+    if (stream->stdout_stream) {
+        g_object_unref(stream->stdout_stream);
+        stream->stdout_stream = NULL;
+    }
+    g_free(stream);
 }

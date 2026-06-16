@@ -986,14 +986,10 @@ static void on_logs_chunk_received(gchar* chunk, gpointer user_data) {
 }
 static void on_logs_dialog_destroy(GtkWidget* widget, gpointer user_data) {
     LogsWindowData* data = (LogsWindowData*)user_data;
-    
+
     if (data) {
         data->is_destroyed = TRUE;
-        if (data->is_streaming && data->stream) {
-            if (data->stream) {
-                data->stream->user_data = NULL;
-                data->stream->callback = NULL;
-            }
+        if (data->stream) {
             command_stream_stop(data->stream);
             data->stream = NULL;
         }
@@ -1005,7 +1001,8 @@ static void on_logs_dialog_destroy(GtkWidget* widget, gpointer user_data) {
         g_free(data);
     }
 }
-static void show_container_logs(GtkWindow* parent_window, const gchar* container_id, const gchar* container_name) {
+static void show_container_logs(GtkWindow* parent_window, const gchar* container_id,
+                              const gchar* container_name, gboolean follow_logs) {
     GtkWidget* dialog = gtk_dialog_new_with_buttons(
         "Container Logs",
         parent_window,
@@ -1054,10 +1051,12 @@ static void show_container_logs(GtkWindow* parent_window, const gchar* container
     gtk_container_add(GTK_CONTAINER(content_area), scrolled);
     g_signal_connect(dialog, "response", G_CALLBACK(gtk_widget_destroy), NULL);
     g_signal_connect(dialog, "destroy", G_CALLBACK(on_logs_dialog_destroy), data);
-    gchar* stream_command = g_strdup_printf("docker logs -f --tail 0 %s", container_id);
-    data->stream = execute_command_stream(stream_command, on_logs_chunk_received, data);
-    data->is_streaming = (data->stream != NULL);
-    g_free(stream_command);
+    if (follow_logs) {
+        gchar* stream_command = g_strdup_printf("docker logs -f --tail 0 %s", container_id);
+        data->stream = execute_command_stream(stream_command, on_logs_chunk_received, data);
+        data->is_streaming = (data->stream != NULL);
+        g_free(stream_command);
+    }
     gtk_widget_show_all(dialog);
 }
 static void on_view_logs_clicked(GtkMenuItem* menu_item, gpointer user_data) {
@@ -1077,19 +1076,23 @@ static void on_view_logs_clicked(GtkMenuItem* menu_item, gpointer user_data) {
     }
     gchar* container_id = NULL;
     gchar* container_name = NULL;
-    gtk_tree_model_get(model, &iter, 2, &container_id, 8, &container_name, -1);
-    
+    gchar* status_text = NULL;
+    gtk_tree_model_get(model, &iter, 2, &container_id, 8, &container_name, 0, &status_text, -1);
+
     if (!container_id || strlen(container_id) == 0) {
         if (container_id) g_free(container_id);
         if (container_name) g_free(container_name);
+        if (status_text) g_free(status_text);
         return;
     }
+    gboolean is_running = status_text && g_str_has_prefix(status_text, "\xe2\x97\x8f");
     GtkWidget* toplevel = gtk_widget_get_toplevel(data->tree_view);
     GtkWindow* parent_window = GTK_IS_WINDOW(toplevel) ? GTK_WINDOW(toplevel) : NULL;
-    show_container_logs(parent_window, container_id, container_name);
-    
+    show_container_logs(parent_window, container_id, container_name, is_running);
+
     if (container_id) g_free(container_id);
     if (container_name) g_free(container_name);
+    if (status_text) g_free(status_text);
 }
 static void on_inspect_container_clicked(GtkMenuItem* menu_item, gpointer user_data) {
     ContainerTableData* data = (ContainerTableData*)user_data;

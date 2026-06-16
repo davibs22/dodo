@@ -1,3 +1,11 @@
+dodo (1.1.1-1) unstable; urgency=medium
+
+  * Fix crash when viewing logs of stopped containers.
+  * Fix freeze during automatic container list refresh.
+  * Refresh containers incrementally to preserve scroll position.
+
+ -- Davi Bomfim Santiago <davi.santiago@sesatech.com.br>  Tue, 16 Jun 2026 15:00:00 -0300
+
 dodo (1.1.0-1) unstable; urgency=medium
 
   * Add automatic refresh of the containers table every 5 seconds.
