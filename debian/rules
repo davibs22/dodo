@@ -1,0 +1,21 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	PKG_CONFIG_PATH=/usr/lib/$(DEB_HOST_GNU_CPU)-linux-gnu/pkgconfig:/usr/share/pkgconfig $(MAKE)
+
+override_dh_shlibdeps:
+	dh_shlibdeps -- --ignore-missing-info
+
+override_dh_auto_install:
+	install -D -m 755 dist/dodo debian/dodo/usr/bin/dodo
+	install -d debian/dodo/usr/share/dodo/assets/icons
+	cp -a assets/icons/. debian/dodo/usr/share/dodo/assets/icons/
+	install -m 644 assets/logo.svg debian/dodo/usr/share/dodo/assets/logo.svg
+	install -D -m 644 debian/dodo.desktop debian/dodo/usr/share/applications/dodo.desktop
+	install -D -m 644 assets/logo.svg debian/dodo/usr/share/icons/hicolor/scalable/apps/dodo.svg
+
+override_dh_auto_clean:
+	$(MAKE) clean

@@ -19,6 +19,18 @@ dist/
 build/
 *.log
 
+# Debian package build
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/files
+debian/*.substvars
+debian/*.debhelper.log
+debian/dodo/
+*.deb
+*.ddeb
+*.changes
+*.buildinfo
+
 # Misc
 *.tmp
 *.bak

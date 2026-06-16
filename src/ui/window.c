@@ -1378,7 +1378,7 @@ static void on_about_clicked(GtkButton *button, gpointer user_data) {
     about_dialog = gtk_about_dialog_new();
     gtk_window_set_transient_for(GTK_WINDOW(about_dialog), window);
     gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), "Dodo");
-    gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(about_dialog), "Version 1.0.0");
+    gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(about_dialog), "Version 1.1.0");
     gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog), 
                                   "A GTK3 application to manage Docker containers");
     gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog), 

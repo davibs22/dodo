@@ -9,6 +9,9 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <gio/gio.h>
+
+#define CONTAINERS_REFRESH_INTERVAL_MS 5000
+
 typedef struct {
     GtkTreeStore* store;
     GtkTreeModelFilter* filter;
@@ -158,6 +161,11 @@ static void on_docker_action_complete(gchar* output, gpointer user_data) {
     ContainerTableData* data = (ContainerTableData*)user_data;
     g_free(output); // No need for command action output
     refresh_containers_table_async(data->store, data->tree_view);
+}
+static gboolean on_containers_refresh_timer(gpointer user_data) {
+    ContainerTableData* data = (ContainerTableData*)user_data;
+    refresh_containers_table_async(data->store, data->tree_view);
+    return TRUE;
 }
 static void on_container_remove_complete(gchar* output, gpointer user_data) {
     RemoveContainerData* data = (RemoveContainerData*)user_data;
@@ -1305,6 +1313,7 @@ GtkWidget* create_containers_table(void) {
     data->tree_view = tree_view;
     g_object_ref(store);
     g_signal_connect(tree_view, "button-press-event", G_CALLBACK(on_button_press_event), data);
+    g_timeout_add(CONTAINERS_REFRESH_INTERVAL_MS, on_containers_refresh_timer, data);
     GtkCellRenderer* renderer = gtk_cell_renderer_text_new();
     GtkTreeViewColumn* compose_column = gtk_tree_view_column_new_with_attributes(
         "", renderer, "text", 9, NULL);

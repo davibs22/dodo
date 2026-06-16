@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Dodo
+Comment=Manage Docker from your desktop
+GenericName=Docker Client
+Exec=dodo
+Icon=dodo
+Terminal=false
+Type=Application
+Categories=Development;System;
+Keywords=docker;containers;devops;

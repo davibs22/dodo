@@ -1,0 +1,11 @@
+dodo (1.1.0-1) unstable; urgency=medium
+
+  * Add automatic refresh of the containers table every 5 seconds.
+
+ -- Davi Bomfim Santiago <davi.santiago@sesatech.com.br>  Mon, 15 Jun 2026 12:00:00 -0300
+
+dodo (1.0.0-1) unstable; urgency=medium
+
+  * Initial Debian package release.
+
+ -- Davi Bomfim Santiago <davi.santiago@sesatech.com.br>  Fri, 05 Jun 2026 12:00:00 -0300

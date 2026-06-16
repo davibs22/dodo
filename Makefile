@@ -33,4 +33,7 @@ $(TARGET): $(CPP_SOURCE) $(OBJECTS)
 clean:
 	rm -rf dist $(OBJECTS)
 
-.PHONY: all clean
+deb:
+	dpkg-buildpackage -us -uc -b
+
+.PHONY: all clean deb
