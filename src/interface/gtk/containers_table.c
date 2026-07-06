@@ -1,7 +1,9 @@
 #include "containers_table.h"
-#include "../models/container.h"
-#include "../docker/docker_command.h"
-#include "../utils/status_utils.h"
+#include "models/container.h"
+#include "core/service/container_service.h"
+#include "core/service/compose_service.h"
+#include "core/parse/json_format.h"
+#include "utils/status_utils.h"
 #include <string.h>
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -33,7 +35,7 @@ typedef struct {
     GtkWindow* dialog;
     GtkTextView* text_view;
     GtkTextBuffer* text_buffer;
-    CommandStream* stream;
+    DodoCommandStream* stream;
     gchar* container_id;
     gchar* container_name;
     gboolean is_streaming;
@@ -286,9 +288,7 @@ static void on_stop_container(GtkMenuItem* item, gpointer user_data) {
             convert_to_store_iter(model, &iter, &store_iter);
             set_container_loading_status(data->store, &store_iter);
             
-            gchar* command = g_strdup_printf("docker stop %s", container_id);
-            execute_command_async(command, on_docker_action_complete, data);
-            g_free(command);
+            dodo_container_stop_async(container_id, on_docker_action_complete, data);
         }
         
         if (container_id) g_free(container_id);
@@ -313,9 +313,7 @@ static void on_restart_container(GtkMenuItem* item, gpointer user_data) {
             convert_to_store_iter(model, &iter, &store_iter);
             set_container_loading_status(data->store, &store_iter);
             
-            gchar* command = g_strdup_printf("docker restart %s", container_id);
-            execute_command_async(command, on_docker_action_complete, data);
-            g_free(command);
+            dodo_container_restart_async(container_id, on_docker_action_complete, data);
         }
         
         if (container_id) g_free(container_id);
@@ -340,9 +338,7 @@ static void on_start_container(GtkMenuItem* item, gpointer user_data) {
             convert_to_store_iter(model, &iter, &store_iter);
             set_container_loading_status(data->store, &store_iter);
             
-            gchar* command = g_strdup_printf("docker start %s", container_id);
-            execute_command_async(command, on_docker_action_complete, data);
-            g_free(command);
+            dodo_container_start_async(container_id, on_docker_action_complete, data);
         }
         
         if (container_id) g_free(container_id);
@@ -367,9 +363,7 @@ static void on_pause_container(GtkMenuItem* item, gpointer user_data) {
             convert_to_store_iter(model, &iter, &store_iter);
             set_container_loading_status(data->store, &store_iter);
             
-            gchar* command = g_strdup_printf("docker pause %s", container_id);
-            execute_command_async(command, on_docker_action_complete, data);
-            g_free(command);
+            dodo_container_pause_async(container_id, on_docker_action_complete, data);
         }
         
         if (container_id) g_free(container_id);
@@ -394,9 +388,7 @@ static void on_unpause_container(GtkMenuItem* item, gpointer user_data) {
             convert_to_store_iter(model, &iter, &store_iter);
             set_container_loading_status(data->store, &store_iter);
             
-            gchar* command = g_strdup_printf("docker unpause %s", container_id);
-            execute_command_async(command, on_docker_action_complete, data);
-            g_free(command);
+            dodo_container_unpause_async(container_id, on_docker_action_complete, data);
         }
         
         if (container_id) g_free(container_id);
@@ -486,15 +478,8 @@ static void on_confirm_remove_container_response(GtkDialog* dialog, gint respons
             convert_to_store_iter(model, &iter, &store_iter);
             set_container_loading_status(confirm_data->store, &store_iter);
         }
-        gchar* command;
-        if (confirm_data->is_running) {
-            command = g_strdup_printf("docker rm -f %s", confirm_data->container_id);
-        } else {
-            command = g_strdup_printf("docker rm %s", confirm_data->container_id);
-        }
-        execute_command_async(command, on_container_remove_complete, confirm_data);
-        
-        g_free(command);
+        dodo_container_remove_async(confirm_data->container_id, confirm_data->is_running,
+                                    on_container_remove_complete, confirm_data);
     } else {
         if (confirm_data) {
             g_free(confirm_data->container_id);
@@ -524,10 +509,7 @@ static void on_confirm_compose_down_response(GtkDialog* dialog, gint response_id
             convert_to_store_iter(model, &iter, &store_iter);
             set_group_loading_status(confirm_data->store, &store_iter);
         }
-        gchar* command = g_strdup_printf("docker compose -p %s down", confirm_data->project_name);
-        execute_command_async(command, on_compose_down_complete, confirm_data);
-        
-        g_free(command);
+        dodo_compose_down_async(confirm_data->project_name, on_compose_down_complete, confirm_data);
     } else {
         g_free(confirm_data->project_name);
         g_free(confirm_data);
@@ -582,9 +564,7 @@ static void on_compose_stop(GtkMenuItem* item, gpointer user_data) {
             convert_to_store_iter(model, &iter, &store_iter);
             set_group_loading_status(data->store, &store_iter);
             
-            gchar* command = g_strdup_printf("docker compose -p %s stop", project_name);
-            execute_command_async(command, on_docker_action_complete, data);
-            g_free(command);
+            dodo_compose_stop_async(project_name, on_docker_action_complete, data);
         }
         
         if (project_name) g_free(project_name);
@@ -605,9 +585,7 @@ static void on_compose_start(GtkMenuItem* item, gpointer user_data) {
             convert_to_store_iter(model, &iter, &store_iter);
             set_group_loading_status(data->store, &store_iter);
             
-            gchar* command = g_strdup_printf("docker compose -p %s start", project_name);
-            execute_command_async(command, on_docker_action_complete, data);
-            g_free(command);
+            dodo_compose_start_async(project_name, on_docker_action_complete, data);
         }
         
         if (project_name) g_free(project_name);
@@ -628,86 +606,11 @@ static void on_compose_restart(GtkMenuItem* item, gpointer user_data) {
             convert_to_store_iter(model, &iter, &store_iter);
             set_group_loading_status(data->store, &store_iter);
             
-            gchar* command = g_strdup_printf("docker compose -p %s restart", project_name);
-            execute_command_async(command, on_docker_action_complete, data);
-            g_free(command);
+            dodo_compose_restart_async(project_name, on_docker_action_complete, data);
         }
         
         if (project_name) g_free(project_name);
     }
-}
-static gchar* format_json_simple(const gchar* json) {
-    if (!json) return NULL;
-    
-    gint indent = 0;
-    GString* formatted = g_string_new("");
-    gboolean in_string = FALSE;
-    gboolean escape_next = FALSE;
-    
-    for (const gchar* p = json; *p; p++) {
-        if (escape_next) {
-            g_string_append_c(formatted, *p);
-            escape_next = FALSE;
-            continue;
-        }
-        
-        if (*p == '\\') {
-            escape_next = TRUE;
-            g_string_append_c(formatted, *p);
-            continue;
-        }
-        
-        if (*p == '"') {
-            in_string = !in_string;
-            g_string_append_c(formatted, *p);
-            continue;
-        }
-        
-        if (in_string) {
-            g_string_append_c(formatted, *p);
-            continue;
-        }
-        
-        switch (*p) {
-            case '{':
-            case '[':
-                g_string_append_c(formatted, *p);
-                g_string_append_c(formatted, '\n');
-                indent++;
-                for (gint i = 0; i < indent; i++) {
-                    g_string_append(formatted, "  ");
-                }
-                break;
-            case '}':
-            case ']':
-                g_string_append_c(formatted, '\n');
-                indent--;
-                for (gint i = 0; i < indent; i++) {
-                    g_string_append(formatted, "  ");
-                }
-                g_string_append_c(formatted, *p);
-                break;
-            case ',':
-                g_string_append_c(formatted, *p);
-                g_string_append_c(formatted, '\n');
-                for (gint i = 0; i < indent; i++) {
-                    g_string_append(formatted, "  ");
-                }
-                break;
-            case ':':
-                g_string_append(formatted, ": ");
-                break;
-            case ' ':
-            case '\n':
-            case '\t':
-                break;
-            default:
-                g_string_append_c(formatted, *p);
-                break;
-        }
-    }
-    
-    return g_string_free(formatted, FALSE);
 }
 static void apply_json_syntax_highlighting(GtkTextBuffer* buffer, const gchar* json_text) {
     if (!buffer || !json_text) return;
@@ -902,45 +805,7 @@ static void on_container_inspect_complete(gchar* output, gpointer user_data) {
     gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(text_view), GTK_WRAP_WORD);
     GtkTextBuffer* buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_view));
     if (output && strlen(output) > 0) {
-        gchar* formatted_output = NULL;
-        gchar* jq_check = execute_command("which jq >/dev/null 2>&1 && echo 'ok'");
-        gboolean jq_available = (jq_check && g_strcmp0(g_strstrip(jq_check), "ok") == 0);
-        g_free(jq_check);
-        
-        if (jq_available) {
-            gchar* temp_file = g_strdup_printf("/tmp/docker_container_inspect_%d.json", getpid());
-            FILE* fp = fopen(temp_file, "w");
-            if (fp) {
-                fputs(output, fp);
-                fclose(fp);
-                
-                gchar* jq_command = g_strdup_printf("jq . %s 2>/dev/null", temp_file);
-                gchar* jq_output = execute_command(jq_command);
-                g_free(jq_command);
-                unlink(temp_file);
-                
-                if (jq_output && strlen(jq_output) > 0 && !g_strrstr(jq_output, "error")) {
-                    formatted_output = jq_output;
-                } else {
-                    if (jq_output) g_free(jq_output);
-                    formatted_output = format_json_simple(output);
-                    if (!formatted_output) {
-                        formatted_output = g_strdup(output);
-                    }
-                }
-            } else {
-                formatted_output = format_json_simple(output);
-                if (!formatted_output) {
-                    formatted_output = g_strdup(output);
-                }
-            }
-            g_free(temp_file);
-        } else {
-            formatted_output = format_json_simple(output);
-            if (!formatted_output) {
-                formatted_output = g_strdup(output);
-            }
-        }
+        gchar* formatted_output = dodo_format_inspect_output(output, "docker_container_inspect");
         apply_json_syntax_highlighting(buffer, formatted_output);
         g_free(formatted_output);
     } else {
@@ -979,7 +844,7 @@ static void on_logs_chunk_received(gchar* chunk, gpointer user_data) {
     } else {
         data->is_streaming = FALSE;
         if (data->stream) {
-            command_stream_stop(data->stream);
+            dodo_command_stream_stop(data->stream);
             data->stream = NULL;
         }
     }
@@ -990,7 +855,7 @@ static void on_logs_dialog_destroy(GtkWidget* widget, gpointer user_data) {
     if (data) {
         data->is_destroyed = TRUE;
         if (data->stream) {
-            command_stream_stop(data->stream);
+            dodo_command_stream_stop(data->stream);
             data->stream = NULL;
         }
         data->dialog = NULL;
@@ -1033,9 +898,7 @@ static void show_container_logs(GtkWindow* parent_window, const gchar* container
     GtkTextBuffer* buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_view));
     data->text_view = GTK_TEXT_VIEW(text_view);
     data->text_buffer = buffer;
-    gchar* initial_command = g_strdup_printf("docker logs --tail 100 %s", container_id);
-    gchar* initial_output = execute_command(initial_command);
-    g_free(initial_command);
+    gchar* initial_output = dodo_container_logs_tail(container_id, 100);
     
     if (initial_output && strlen(initial_output) > 0) {
         gtk_text_buffer_set_text(buffer, initial_output, -1);
@@ -1052,10 +915,8 @@ static void show_container_logs(GtkWindow* parent_window, const gchar* container
     g_signal_connect(dialog, "response", G_CALLBACK(gtk_widget_destroy), NULL);
     g_signal_connect(dialog, "destroy", G_CALLBACK(on_logs_dialog_destroy), data);
     if (follow_logs) {
-        gchar* stream_command = g_strdup_printf("docker logs -f --tail 0 %s", container_id);
-        data->stream = execute_command_stream(stream_command, on_logs_chunk_received, data);
+        data->stream = dodo_container_logs_stream(container_id, TRUE, on_logs_chunk_received, data);
         data->is_streaming = (data->stream != NULL);
-        g_free(stream_command);
     }
     gtk_widget_show_all(dialog);
 }
@@ -1121,10 +982,8 @@ static void on_inspect_container_clicked(GtkMenuItem* menu_item, gpointer user_d
     InspectContainerData* inspect_data = g_new(InspectContainerData, 1);
     inspect_data->parent_window = parent_window;
     inspect_data->container_id = g_strdup(container_id);
-    gchar* command = g_strdup_printf("docker inspect %s", container_id);
-    execute_command_async(command, on_container_inspect_complete, inspect_data);
-    
-    g_free(command);
+    dodo_container_inspect_async(container_id, on_container_inspect_complete, inspect_data);
+
     g_free(container_id);
 }
 static void on_compose_up(GtkMenuItem* item, gpointer user_data) {
@@ -1142,9 +1001,7 @@ static void on_compose_up(GtkMenuItem* item, gpointer user_data) {
             convert_to_store_iter(model, &iter, &store_iter);
             set_group_loading_status(data->store, &store_iter);
             
-            gchar* command = g_strdup_printf("docker compose -p %s up -d", project_name);
-            execute_command_async(command, on_docker_action_complete, data);
-            g_free(command);
+            dodo_compose_up_async(project_name, on_docker_action_complete, data);
         }
         
         if (project_name) g_free(project_name);

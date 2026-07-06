@@ -1,14 +1,14 @@
-#include "docker_command.h"
+#include "command.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-gchar* execute_command(const gchar* command) {
+gchar* dodo_execute_command(const gchar* command) {
     GError* error = NULL;
     gchar** argv = NULL;
     gchar* stdout_buf = NULL;
     if (!g_shell_parse_argv(command, NULL, &argv, &error)) {
-        g_warning("execute_command: failed to parse '%s': %s", command, error->message);
+        g_warning("dodo_execute_command: failed to parse '%s': %s", command, error->message);
         g_error_free(error);
         return NULL;
     }
@@ -20,12 +20,12 @@ gchar* execute_command(const gchar* command) {
     g_strfreev(argv);
     
     if (subprocess == NULL) {
-        g_warning("execute_command: failed to create subprocess for '%s': %s", command, error->message);
+        g_warning("dodo_execute_command: failed to create subprocess for '%s': %s", command, error->message);
         g_error_free(error);
         return NULL;
     }
     if (!g_subprocess_communicate_utf8(subprocess, NULL, NULL, &stdout_buf, NULL, &error)) {
-        g_warning("execute_command: failed to communicate with subprocess '%s': %s", command, error->message);
+        g_warning("dodo_execute_command: failed to communicate with subprocess '%s': %s", command, error->message);
         g_error_free(error);
         g_object_unref(subprocess);
         return NULL;
@@ -37,7 +37,7 @@ gchar* execute_command(const gchar* command) {
 typedef struct {
     gchar* command;
     gchar* output;
-    CommandAsyncCallback callback;
+    DodoCommandAsyncCallback callback;
     gpointer user_data;
 } AsyncCommandData;
 static gboolean async_deliver_result(gpointer data) {
@@ -55,13 +55,13 @@ static gboolean async_deliver_result(gpointer data) {
 }
 static gpointer async_command_worker(gpointer data) {
     AsyncCommandData* async_data = (AsyncCommandData*)data;
-    async_data->output = execute_command(async_data->command);
+    async_data->output = dodo_execute_command(async_data->command);
     g_idle_add(async_deliver_result, async_data);
     
     return NULL;
 }
 
-void execute_command_async(const gchar* command, CommandAsyncCallback callback, gpointer user_data) {
+void dodo_execute_command_async(const gchar* command, DodoCommandAsyncCallback callback, gpointer user_data) {
     AsyncCommandData* data = g_new0(AsyncCommandData, 1);
     data->command = g_strdup(command);
     data->callback = callback;
@@ -70,13 +70,13 @@ void execute_command_async(const gchar* command, CommandAsyncCallback callback, 
 }
 typedef struct {
     gchar* chunk;
-    CommandStreamCallback callback;
+    DodoCommandStreamCallback callback;
     gpointer user_data;
-    CommandStream* stream;
+    DodoCommandStream* stream;
 } StreamChunkData;
 static gboolean deliver_stream_chunk(gpointer data) {
     StreamChunkData* chunk_data = (StreamChunkData*)data;
-    CommandStream* stream = chunk_data->stream;
+    DodoCommandStream* stream = chunk_data->stream;
 
     if (stream) {
         stream->end_idle_id = 0;
@@ -92,7 +92,7 @@ static gboolean deliver_stream_chunk(gpointer data) {
     return G_SOURCE_REMOVE;
 }
 static gpointer stream_reader_worker(gpointer data) {
-    CommandStream* cmd_stream = (CommandStream*)data;
+    DodoCommandStream* cmd_stream = (DodoCommandStream*)data;
     GError* error = NULL;
     gchar buffer[4096];
     gssize bytes_read;
@@ -137,11 +137,11 @@ static gpointer stream_reader_worker(gpointer data) {
     return NULL;
 }
 
-CommandStream* execute_command_stream(const gchar* command, CommandStreamCallback callback, gpointer user_data) {
+DodoCommandStream* dodo_execute_command_stream(const gchar* command, DodoCommandStreamCallback callback, gpointer user_data) {
     GError* error = NULL;
     gchar** argv = NULL;
     if (!g_shell_parse_argv(command, NULL, &argv, &error)) {
-        g_warning("execute_command_stream: failed to parse '%s': %s", command, error->message);
+        g_warning("dodo_execute_command_stream: failed to parse '%s': %s", command, error->message);
         g_error_free(error);
         return NULL;
     }
@@ -153,17 +153,17 @@ CommandStream* execute_command_stream(const gchar* command, CommandStreamCallbac
     g_strfreev(argv);
     
     if (subprocess == NULL) {
-        g_warning("execute_command_stream: failed to create subprocess for '%s': %s", command, error->message);
+        g_warning("dodo_execute_command_stream: failed to create subprocess for '%s': %s", command, error->message);
         g_error_free(error);
         return NULL;
     }
     GInputStream* stdout_stream = g_subprocess_get_stdout_pipe(subprocess);
     if (!stdout_stream) {
-        g_warning("execute_command_stream: failed to get stdout pipe");
+        g_warning("dodo_execute_command_stream: failed to get stdout pipe");
         g_object_unref(subprocess);
         return NULL;
     }
-    CommandStream* cmd_stream = g_new0(CommandStream, 1);
+    DodoCommandStream* cmd_stream = g_new0(DodoCommandStream, 1);
     cmd_stream->subprocess = subprocess;
     cmd_stream->stdout_stream = g_object_ref(stdout_stream); // Keep reference
     cmd_stream->data_stream = NULL; // Not used in this implementation
@@ -178,7 +178,7 @@ CommandStream* execute_command_stream(const gchar* command, CommandStreamCallbac
     return cmd_stream;
 }
 
-void command_stream_stop(CommandStream* stream) {
+void dodo_command_stream_stop(DodoCommandStream* stream) {
     if (!stream) return;
 
     stream->is_running = FALSE;

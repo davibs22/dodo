@@ -1,6 +1,7 @@
 #include "networks_table.h"
-#include "../models/network.h"
-#include "../docker/docker_command.h"
+#include "models/network.h"
+#include "core/service/network_service.h"
+#include "core/parse/json_format.h"
 #include <gtk/gtk.h>
 #include <pango/pango.h>
 #include <unistd.h>
@@ -114,10 +115,7 @@ static void on_confirm_dialog_response(GtkDialog* dialog, gint response_id, gpoi
             gtk_widget_destroy(GTK_WIDGET(dialog));
             return;
         }
-        gchar* command = g_strdup_printf("docker network rm %s", confirm_data->network_name);
-        execute_command_async(command, on_network_removed, confirm_data);
-        
-        g_free(command);
+        dodo_network_remove_async(confirm_data->network_name, on_network_removed, confirm_data);
     } else {
         g_free(confirm_data->network_name);
         g_free(confirm_data);
@@ -167,79 +165,6 @@ static void on_remove_network_clicked(GtkMenuItem* menu_item, gpointer user_data
     gtk_widget_show_all(dialog);
     
     g_free(network_name);
-}
-static gchar* format_json_simple(const gchar* json) {
-    if (!json) return NULL;
-    
-    gint indent = 0;
-    GString* formatted = g_string_new("");
-    gboolean in_string = FALSE;
-    gboolean escape_next = FALSE;
-    
-    for (const gchar* p = json; *p; p++) {
-        if (escape_next) {
-            g_string_append_c(formatted, *p);
-            escape_next = FALSE;
-            continue;
-        }
-        
-        if (*p == '\\') {
-            escape_next = TRUE;
-            g_string_append_c(formatted, *p);
-            continue;
-        }
-        
-        if (*p == '"') {
-            in_string = !in_string;
-            g_string_append_c(formatted, *p);
-            continue;
-        }
-        
-        if (in_string) {
-            g_string_append_c(formatted, *p);
-            continue;
-        }
-        
-        switch (*p) {
-            case '{':
-            case '[':
-                g_string_append_c(formatted, *p);
-                g_string_append_c(formatted, '\n');
-                indent++;
-                for (gint i = 0; i < indent; i++) {
-                    g_string_append(formatted, "  ");
-                }
-                break;
-            case '}':
-            case ']':
-                g_string_append_c(formatted, '\n');
-                indent--;
-                for (gint i = 0; i < indent; i++) {
-                    g_string_append(formatted, "  ");
-                }
-                g_string_append_c(formatted, *p);
-                break;
-            case ',':
-                g_string_append_c(formatted, *p);
-                g_string_append_c(formatted, '\n');
-                for (gint i = 0; i < indent; i++) {
-                    g_string_append(formatted, "  ");
-                }
-                break;
-            case ':':
-                g_string_append(formatted, ": ");
-                break;
-            case ' ':
-            case '\n':
-            case '\t':
-                break;
-            default:
-                g_string_append_c(formatted, *p);
-                break;
-        }
-    }
-    
-    return g_string_free(formatted, FALSE);
 }
 static void apply_json_syntax_highlighting(GtkTextBuffer* buffer, const gchar* json_text) {
     if (!buffer || !json_text) return;
@@ -435,45 +360,7 @@ static void on_network_inspect_complete(gchar* output, gpointer user_data) {
     gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(text_view), GTK_WRAP_WORD);
     GtkTextBuffer* buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_view));
     if (output && strlen(output) > 0) {
-        gchar* formatted_output = NULL;
-        gchar* jq_check = execute_command("which jq >/dev/null 2>&1 && echo 'ok'");
-        gboolean jq_available = (jq_check && g_strcmp0(g_strstrip(jq_check), "ok") == 0);
-        g_free(jq_check);
-        
-        if (jq_available) {
-            gchar* temp_file = g_strdup_printf("/tmp/docker_network_inspect_%d.json", getpid());
-            FILE* fp = fopen(temp_file, "w");
-            if (fp) {
-                fputs(output, fp);
-                fclose(fp);
-                
-                gchar* jq_command = g_strdup_printf("jq . %s 2>/dev/null", temp_file);
-                gchar* jq_output = execute_command(jq_command);
-                g_free(jq_command);
-                unlink(temp_file);
-                
-                if (jq_output && strlen(jq_output) > 0 && !g_strrstr(jq_output, "error")) {
-                    formatted_output = jq_output;
-                } else {
-                    if (jq_output) g_free(jq_output);
-                    formatted_output = format_json_simple(output);
-                    if (!formatted_output) {
-                        formatted_output = g_strdup(output);
-                    }
-                }
-            } else {
-                formatted_output = format_json_simple(output);
-                if (!formatted_output) {
-                    formatted_output = g_strdup(output);
-                }
-            }
-            g_free(temp_file);
-        } else {
-            formatted_output = format_json_simple(output);
-            if (!formatted_output) {
-                formatted_output = g_strdup(output);
-            }
-        }
+        gchar* formatted_output = dodo_format_inspect_output(output, "docker_network_inspect");
         apply_json_syntax_highlighting(buffer, formatted_output);
         g_free(formatted_output);
     } else {
@@ -520,10 +407,7 @@ static void on_inspect_network_clicked(GtkMenuItem* menu_item, gpointer user_dat
     InspectNetworkData* inspect_data = g_new(InspectNetworkData, 1);
     inspect_data->parent_window = parent_window;
     inspect_data->network_name = g_strdup(network_name);
-    gchar* command = g_strdup_printf("docker network inspect %s", network_name);
-    execute_command_async(command, on_network_inspect_complete, inspect_data);
-    
-    g_free(command);
+    dodo_network_inspect_async(network_name, on_network_inspect_complete, inspect_data);
     g_free(network_name);
 }
 static gboolean on_button_press_event(GtkWidget* widget, GdkEventButton* event, gpointer user_data) {

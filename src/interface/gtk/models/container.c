@@ -1,154 +1,38 @@
 #include "container.h"
-#include "../docker/docker_command.h"
+#include "core/repository/container_repo.h"
+#include "core/container_state.h"
 #include "../utils/status_utils.h"
 #include <string.h>
-#include <glib.h>
-#include <gio/gio.h>
 
 #define INITIAL_LOAD_DONE_KEY "dodo-initial-load-done"
-#define STANDALONE_GROUP_NAME "individual containers"
-typedef struct {
-    gchar* id;
-    gchar* image;
-    gchar* command;
-    gchar* created;
-    gchar* status;
-    gchar* ports;
-    gchar* names;
-    gchar* compose_project;
-} ContainerInfo;
-static gchar* get_compose_project(const gchar* container_id) {
-    gchar* command = g_strdup_printf("docker inspect --format '{{index .Config.Labels \"com.docker.compose.project\"}}' %s", container_id);
-    gchar* output = execute_command(command);
-    g_free(command);
-    
-    if (output && strlen(output) > 0 && strlen(output) < 200) {
-        g_strstrip(output);
-        if (strlen(output) > 0 && strcmp(output, "<no value>") != 0) {
-            return output;
-        }
-    }
-    
-    if (output) g_free(output);
-    return NULL;
-}
-static void free_container_info(ContainerInfo* info) {
-    if (info) {
-        g_free(info->id);
-        g_free(info->image);
-        g_free(info->command);
-        g_free(info->created);
-        g_free(info->status);
-        g_free(info->ports);
-        g_free(info->names);
-        g_free(info->compose_project);
-        g_free(info);
-    }
-}
+
 static void get_group_status(GPtrArray* containers, gchar** status_text, gchar** color) {
-    if (containers == NULL || containers->len == 0) {
-        *status_text = g_strdup("");
-        *color = NULL;
-        return;
-    }
-    
+    gchar* summary = NULL;
     guint running_count = 0;
-    guint total_count = containers->len;
-    
-    for (guint i = 0; i < containers->len; i++) {
-        ContainerInfo* info = g_ptr_array_index(containers, i);
-        if (info->status && g_str_has_prefix(info->status, "Up")) {
-            running_count++;
+    guint total_count = 0;
+
+    dodo_compose_group_summary(containers, &summary, &running_count, &total_count);
+
+    if (status_text) {
+        *status_text = summary ? summary : g_strdup("");
+    } else if (summary) {
+        g_free(summary);
+    }
+
+    if (color) {
+        if (total_count == 0) {
+            *color = NULL;
+        } else if (running_count == 0) {
+            *color = NULL;
+        } else if (running_count == total_count) {
+            *color = g_strdup("#00AA00");
+        } else {
+            *color = g_strdup("#FFAA00");
         }
     }
-    
-    if (running_count == 0) {
-        *status_text = g_strdup_printf("All Stopped (%d)", total_count);
-        *color = NULL; // Default color
-    } else if (running_count == total_count) {
-        *status_text = g_strdup_printf("All Running (%d)", total_count);
-        *color = g_strdup("#00AA00"); // Green
-    } else {
-        *status_text = g_strdup_printf("%d/%d Running", running_count, total_count);
-        *color = g_strdup("#FFAA00"); // Orange/Yellow for partial
-    }
 }
 
-typedef struct {
-    GHashTable* project_groups;         // gchar* -> GPtrArray* of ContainerInfo*
-    GPtrArray* standalone_containers;   // GPtrArray of ContainerInfo*
-    gboolean has_error;
-} ContainersCollectedData;
-static void free_collected_data(ContainersCollectedData* data) {
-    if (data == NULL) return;
-    
-    if (data->project_groups) {
-        g_hash_table_destroy(data->project_groups);
-    }
-    if (data->standalone_containers) {
-        g_ptr_array_unref(data->standalone_containers);
-    }
-    g_free(data);
-}
-static void destroy_container_array(gpointer data) {
-    GPtrArray* array = (GPtrArray*)data;
-    g_ptr_array_unref(array);
-}
-
-static ContainersCollectedData* collect_containers_data(void) {
-    ContainersCollectedData* result = g_new0(ContainersCollectedData, 1);
-    
-    gchar* output = execute_command("docker container ls -a --format '{{.ID}}\t{{.Image}}\t{{.Command}}\t{{.CreatedAt}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}'");
-    
-    if (output == NULL) {
-        result->has_error = TRUE;
-        return result;
-    }
-    
-    gchar** lines = g_strsplit(output, "\n", -1);
-    g_free(output);
-    result->project_groups = g_hash_table_new_full(
-        g_str_hash, g_str_equal,
-        g_free,                     // key destroy
-        destroy_container_array     // value destroy (frees GPtrArray and ContainerInfo)
-    );
-    result->standalone_containers = g_ptr_array_new_with_free_func((GDestroyNotify)free_container_info);
-    for (gint i = 0; lines[i] != NULL; i++) {
-        if (strlen(lines[i]) == 0) continue;
-        
-        gchar** fields = g_strsplit(lines[i], "\t", -1);
-        if (g_strv_length(fields) >= 7) {
-            ContainerInfo* info = g_new0(ContainerInfo, 1);
-            info->id = g_strdup(fields[0] ? fields[0] : "");
-            info->image = g_strdup(fields[1] ? fields[1] : "");
-            info->command = g_strdup(fields[2] ? fields[2] : "");
-            info->created = g_strdup(fields[3] ? fields[3] : "");
-            info->status = g_strdup(fields[4] ? fields[4] : "");
-            info->ports = g_strdup(fields[5] ? fields[5] : "");
-            info->names = g_strdup(fields[6] ? fields[6] : "");
-            info->compose_project = get_compose_project(info->id);
-            
-            if (info->compose_project && strlen(info->compose_project) > 0) {
-                GPtrArray* group = g_hash_table_lookup(result->project_groups, info->compose_project);
-                if (group == NULL) {
-                    group = g_ptr_array_new_with_free_func((GDestroyNotify)free_container_info);
-                    g_hash_table_insert(result->project_groups, g_strdup(info->compose_project), group);
-                }
-                g_ptr_array_add(group, info);
-            } else {
-                g_free(info->compose_project);
-                info->compose_project = NULL;
-                g_ptr_array_add(result->standalone_containers, info);
-            }
-        }
-        g_strfreev(fields);
-    }
-    
-    g_strfreev(lines);
-    return result;
-}
-
-static void set_container_row(GtkTreeStore* store, GtkTreeIter* iter, ContainerInfo* info) {
+static void set_container_row(GtkTreeStore* store, GtkTreeIter* iter, DodoContainer* info) {
     gchar* running_status;
     gchar* color;
 
@@ -273,7 +157,7 @@ static GtkTreeIter ensure_group_iter(GtkTreeStore* store, const gchar* group_nam
 }
 
 static void upsert_container_row(GtkTreeStore* store, GtkTreeIter* group_iter,
-                                 const gchar* group_name, ContainerInfo* info) {
+                                 const gchar* group_name, DodoContainer* info) {
     GtkTreeIter container_iter;
     gchar* current_group = NULL;
 
@@ -294,7 +178,7 @@ static void upsert_container_row(GtkTreeStore* store, GtkTreeIter* group_iter,
     set_container_row(store, &container_iter, info);
 }
 
-static void collect_container_ids(ContainersCollectedData* data, GHashTable* ids) {
+static void collect_container_ids(DodoContainerList* data, GHashTable* ids) {
     GHashTableIter hash_iter;
     gpointer key, value;
 
@@ -302,7 +186,7 @@ static void collect_container_ids(ContainersCollectedData* data, GHashTable* ids
     while (g_hash_table_iter_next(&hash_iter, &key, &value)) {
         GPtrArray* containers = (GPtrArray*)value;
         for (guint i = 0; i < containers->len; i++) {
-            ContainerInfo* info = g_ptr_array_index(containers, i);
+            DodoContainer* info = g_ptr_array_index(containers, i);
             if (info->id && info->id[0] != '\0') {
                 g_hash_table_add(ids, info->id);
             }
@@ -310,7 +194,7 @@ static void collect_container_ids(ContainersCollectedData* data, GHashTable* ids
     }
 
     for (guint i = 0; i < data->standalone_containers->len; i++) {
-        ContainerInfo* info = g_ptr_array_index(data->standalone_containers, i);
+        DodoContainer* info = g_ptr_array_index(data->standalone_containers, i);
         if (info->id && info->id[0] != '\0') {
             g_hash_table_add(ids, info->id);
         }
@@ -372,7 +256,7 @@ static void show_store_error(GtkTreeStore* store) {
                        3, "", 4, "", 5, "", 6, "", 7, "", 8, "", 9, "", -1);
 }
 
-static void sync_data_to_store(GtkTreeStore* store, ContainersCollectedData* data) {
+static void sync_data_to_store(GtkTreeStore* store, DodoContainerList* data) {
     if (data->has_error) {
         show_store_error(store);
         return;
@@ -392,21 +276,21 @@ static void sync_data_to_store(GtkTreeStore* store, ContainersCollectedData* dat
         GtkTreeIter group_iter = ensure_group_iter(store, project_name, containers);
 
         for (guint i = 0; i < containers->len; i++) {
-            ContainerInfo* info = g_ptr_array_index(containers, i);
+            DodoContainer* info = g_ptr_array_index(containers, i);
             upsert_container_row(store, &group_iter, project_name, info);
         }
     }
 
     if (data->standalone_containers->len > 0) {
-        GtkTreeIter group_iter = ensure_group_iter(store, STANDALONE_GROUP_NAME, data->standalone_containers);
+        GtkTreeIter group_iter = ensure_group_iter(store, DODO_STANDALONE_GROUP_NAME, data->standalone_containers);
 
         for (guint i = 0; i < data->standalone_containers->len; i++) {
-            ContainerInfo* info = g_ptr_array_index(data->standalone_containers, i);
-            upsert_container_row(store, &group_iter, STANDALONE_GROUP_NAME, info);
+            DodoContainer* info = g_ptr_array_index(data->standalone_containers, i);
+            upsert_container_row(store, &group_iter, DODO_STANDALONE_GROUP_NAME, info);
         }
     } else {
         GtkTreeIter standalone_iter;
-        if (find_group_iter(store, STANDALONE_GROUP_NAME, &standalone_iter)) {
+        if (find_group_iter(store, DODO_STANDALONE_GROUP_NAME, &standalone_iter)) {
             gtk_tree_store_remove(store, &standalone_iter);
         }
     }
@@ -416,35 +300,42 @@ static void sync_data_to_store(GtkTreeStore* store, ContainersCollectedData* dat
 }
 
 void populate_docker_containers(GtkTreeStore* store) {
-    ContainersCollectedData* data = collect_containers_data();
+    DodoContainerList* data = dodo_container_list_fetch();
     sync_data_to_store(store, data);
-    free_collected_data(data);
+    dodo_container_list_free(data);
 }
 
 void refresh_containers_table(GtkTreeStore* store) {
-    ContainersCollectedData* data = collect_containers_data();
+    DodoContainerList* data = dodo_container_list_fetch();
     sync_data_to_store(store, data);
-    free_collected_data(data);
+    dodo_container_list_free(data);
 }
+
 typedef struct {
     GtkTreeStore* store;
 } RefreshContainersData;
+
 static void collect_containers_task_func(GTask* task,
                                           gpointer source_object,
                                           gpointer task_data,
                                           GCancellable* cancellable) {
-    ContainersCollectedData* data = collect_containers_data();
-    g_task_return_pointer(task, data, (GDestroyNotify)free_collected_data);
+    (void)source_object;
+    (void)task_data;
+    (void)cancellable;
+    DodoContainerList* data = dodo_container_list_fetch();
+    g_task_return_pointer(task, data, (GDestroyNotify)dodo_container_list_free);
 }
+
 static void on_containers_collected(GObject* source_object,
                                      GAsyncResult* res,
                                      gpointer user_data) {
+    (void)source_object;
     RefreshContainersData* refresh_data = (RefreshContainersData*)user_data;
     GtkTreeStore* store = refresh_data->store;
     GError* error = NULL;
-    
-    ContainersCollectedData* data = g_task_propagate_pointer(G_TASK(res), &error);
-    
+
+    DodoContainerList* data = g_task_propagate_pointer(G_TASK(res), &error);
+
     if (data == NULL) {
         g_object_set_data(G_OBJECT(store), INITIAL_LOAD_DONE_KEY, GINT_TO_POINTER(TRUE));
         if (error) {
@@ -457,7 +348,7 @@ static void on_containers_collected(GObject* source_object,
     }
     sync_data_to_store(store, data);
     g_object_set_data(G_OBJECT(store), INITIAL_LOAD_DONE_KEY, GINT_TO_POINTER(TRUE));
-    free_collected_data(data);
+    dodo_container_list_free(data);
     g_object_unref(store);
     g_free(refresh_data);
 }
@@ -478,7 +369,7 @@ void refresh_containers_table_async(GtkTreeStore* store, GtkWidget* tree_view) {
     g_object_ref(store);
     RefreshContainersData* refresh_data = g_new(RefreshContainersData, 1);
     refresh_data->store = store;
-    
+
     GTask* task = g_task_new(NULL, NULL, on_containers_collected, refresh_data);
     g_task_run_in_thread(task, collect_containers_task_func);
     g_object_unref(task);

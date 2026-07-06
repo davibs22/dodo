@@ -3,11 +3,12 @@
 #include "images_table.h"
 #include "networks_table.h"
 #include "volumes_table.h"
-#include "../models/container.h"
-#include "../models/image.h"
-#include "../models/network.h"
-#include "../models/volume.h"
-#include "../docker/docker_command.h"
+#include "models/container.h"
+#include "models/image.h"
+#include "models/network.h"
+#include "models/volume.h"
+#include "core/service/stats_service.h"
+#include "core/parse/docker_output.h"
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <glib/gstdio.h>
 #include <gio/gio.h>
@@ -838,8 +839,7 @@ static void on_cpu_chart_stats_received(gchar* output, gpointer user_data) {
 }
 static void update_cpu_chart_stats(CpuChartData* chart) {
     if (chart == NULL) return;
-    execute_command_async("docker stats --no-stream --format '{{.Name}}:::{{.CPUPerc}}'",
-                          on_cpu_chart_stats_received, chart);
+    dodo_stats_fetch_cpu_async(on_cpu_chart_stats_received, chart);
 }
 static gboolean update_cpu_chart_stats_timer(gpointer user_data) {
     update_cpu_chart_stats((CpuChartData*)user_data);
@@ -857,272 +857,6 @@ static void format_memory(gdouble bytes, gchar** value, gchar** unit) {
         *unit = g_strdup("GB");
     }
 }
-static gdouble parse_docker_memory(const gchar* mem_str) {
-    if (mem_str == NULL || strlen(mem_str) == 0) {
-        return 0.0;
-    }
-    
-    gchar* str = g_strdup(mem_str);
-    g_strstrip(str);
-    gchar* lower = g_ascii_strdown(str, -1);
-    g_free(str);
-    
-    gchar* endptr;
-    gdouble value = g_strtod(lower, &endptr);
-    
-    if (endptr == lower) {
-        g_free(lower);
-        return 0.0;
-    }
-    gdouble multiplier = 1.0;
-    if (g_str_has_suffix(endptr, "kib") || g_str_has_suffix(endptr, "kb")) {
-        multiplier = 1024.0;
-    } else if (g_str_has_suffix(endptr, "mib") || g_str_has_suffix(endptr, "mb")) {
-        multiplier = 1024.0 * 1024.0;
-    } else if (g_str_has_suffix(endptr, "gib") || g_str_has_suffix(endptr, "gb")) {
-        multiplier = 1024.0 * 1024.0 * 1024.0;
-    } else if (g_str_has_suffix(endptr, "tib") || g_str_has_suffix(endptr, "tb")) {
-        multiplier = 1024.0 * 1024.0 * 1024.0 * 1024.0;
-    }
-    
-    g_free(lower);
-    return value * multiplier;
-}
-static gdouble calculate_total_memory_usage(gchar* output) {
-    if (output == NULL || strlen(output) == 0) {
-        return 0.0;
-    }
-    
-    gdouble total_memory = 0.0;
-    gchar** lines = g_strsplit(output, "\n", -1);
-    
-    for (gint i = 0; lines[i] != NULL; i++) {
-        gchar* line = g_strstrip(lines[i]);
-        if (strlen(line) == 0) continue;
-        gchar** parts = g_strsplit(line, "/", 2);
-        if (parts[0] != NULL) {
-            gdouble mem_value = parse_docker_memory(parts[0]);
-            total_memory += mem_value;
-        }
-        g_strfreev(parts);
-    }
-    
-    g_strfreev(lines);
-    return total_memory;
-}
-static gdouble get_system_total_memory(void) {
-    GError* error = NULL;
-    gchar* contents = NULL;
-    gsize length = 0;
-    
-    if (!g_file_get_contents("/proc/meminfo", &contents, &length, &error)) {
-        if (error) {
-            g_warning("Error reading /proc/meminfo: %s", error->message);
-            g_error_free(error);
-        }
-        return 0.0;
-    }
-    gchar** lines = g_strsplit(contents, "\n", -1);
-    g_free(contents);
-    
-    gdouble total_mem_kb = 0.0;
-    for (gint i = 0; lines[i] != NULL; i++) {
-        if (g_str_has_prefix(lines[i], "MemTotal:")) {
-            gchar** parts = g_strsplit(lines[i], ":", 2);
-            if (parts[1] != NULL) {
-                gchar* value_str = g_strstrip(parts[1]);
-                gchar* endptr;
-                total_mem_kb = g_strtod(value_str, &endptr);
-                if (endptr == value_str || total_mem_kb <= 0.0) {
-                    total_mem_kb = 0.0;
-                }
-            }
-            g_strfreev(parts);
-            break;
-        }
-    }
-    
-    g_strfreev(lines);
-    return total_mem_kb * 1024.0;
-}
-static void parse_docker_blockio(const gchar* blockio_str, gdouble* read_mb, gdouble* write_mb) {
-    *read_mb = 0.0;
-    *write_mb = 0.0;
-    
-    if (blockio_str == NULL || strlen(blockio_str) == 0) {
-        return;
-    }
-    
-    gchar* str = g_strdup(blockio_str);
-    g_strstrip(str);
-    gchar** parts = g_strsplit(str, "/", 2);
-    g_free(str);
-    
-    if (parts[0] != NULL) {
-        gchar* read_str = g_strstrip(parts[0]);
-        gchar* lower_read = g_ascii_strdown(read_str, -1);
-        gchar* endptr;
-        gdouble read_value = g_strtod(lower_read, &endptr);
-        
-        if (endptr != lower_read) {
-            gdouble multiplier = 1.0;
-            gchar* trimmed_endptr = g_strstrip(endptr);
-            if (g_str_has_suffix(trimmed_endptr, "tib") || g_str_has_suffix(trimmed_endptr, "tb")) {
-                multiplier = 1024.0 * 1024.0;  // TB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "gib") || g_str_has_suffix(trimmed_endptr, "gb")) {
-                multiplier = 1024.0;  // GB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "mib") || g_str_has_suffix(trimmed_endptr, "mb")) {
-                multiplier = 1.0;  // MB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "kib") || g_str_has_suffix(trimmed_endptr, "kb")) {
-                multiplier = 1.0 / 1024.0;  // KB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "b")) {
-                multiplier = 1.0 / (1024.0 * 1024.0);  // B → MB
-            }
-            *read_mb = read_value * multiplier;
-        }
-        g_free(lower_read);
-    }
-    
-    if (parts[1] != NULL) {
-        gchar* write_str = g_strstrip(parts[1]);
-        gchar* lower_write = g_ascii_strdown(write_str, -1);
-        gchar* endptr;
-        gdouble write_value = g_strtod(lower_write, &endptr);
-        
-        if (endptr != lower_write) {
-            gdouble multiplier = 1.0;
-            gchar* trimmed_endptr = g_strstrip(endptr);
-            if (g_str_has_suffix(trimmed_endptr, "tib") || g_str_has_suffix(trimmed_endptr, "tb")) {
-                multiplier = 1024.0 * 1024.0;  // TB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "gib") || g_str_has_suffix(trimmed_endptr, "gb")) {
-                multiplier = 1024.0;  // GB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "mib") || g_str_has_suffix(trimmed_endptr, "mb")) {
-                multiplier = 1.0;  // MB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "kib") || g_str_has_suffix(trimmed_endptr, "kb")) {
-                multiplier = 1.0 / 1024.0;  // KB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "b")) {
-                multiplier = 1.0 / (1024.0 * 1024.0);  // B → MB
-            }
-            *write_mb = write_value * multiplier;
-        }
-        g_free(lower_write);
-    }
-    
-    g_strfreev(parts);
-}
-static void parse_docker_netio(const gchar* netio_str, gdouble* received_mb, gdouble* sent_mb) {
-    *received_mb = 0.0;
-    *sent_mb = 0.0;
-    
-    if (netio_str == NULL || strlen(netio_str) == 0) {
-        return;
-    }
-    
-    gchar* str = g_strdup(netio_str);
-    g_strstrip(str);
-    gchar** parts = g_strsplit(str, "/", 2);
-    g_free(str);
-    
-    if (parts[0] != NULL) {
-        gchar* received_str = g_strstrip(parts[0]);
-        gchar* lower_received = g_ascii_strdown(received_str, -1);
-        gchar* endptr;
-        gdouble received_value = g_strtod(lower_received, &endptr);
-        
-        if (endptr != lower_received) {
-            gdouble multiplier = 1.0;
-            gchar* trimmed_endptr = g_strstrip(endptr);
-            if (g_str_has_suffix(trimmed_endptr, "tib") || g_str_has_suffix(trimmed_endptr, "tb")) {
-                multiplier = 1024.0 * 1024.0;  // TB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "gib") || g_str_has_suffix(trimmed_endptr, "gb")) {
-                multiplier = 1024.0;  // GB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "mib") || g_str_has_suffix(trimmed_endptr, "mb")) {
-                multiplier = 1.0;  // MB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "kib") || g_str_has_suffix(trimmed_endptr, "kb")) {
-                multiplier = 1.0 / 1024.0;  // KB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "b")) {
-                multiplier = 1.0 / (1024.0 * 1024.0);  // B → MB
-            }
-            *received_mb = received_value * multiplier;
-        }
-        g_free(lower_received);
-    }
-    
-    if (parts[1] != NULL) {
-        gchar* sent_str = g_strstrip(parts[1]);
-        gchar* lower_sent = g_ascii_strdown(sent_str, -1);
-        gchar* endptr;
-        gdouble sent_value = g_strtod(lower_sent, &endptr);
-        
-        if (endptr != lower_sent) {
-            gdouble multiplier = 1.0;
-            gchar* trimmed_endptr = g_strstrip(endptr);
-            if (g_str_has_suffix(trimmed_endptr, "tib") || g_str_has_suffix(trimmed_endptr, "tb")) {
-                multiplier = 1024.0 * 1024.0;  // TB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "gib") || g_str_has_suffix(trimmed_endptr, "gb")) {
-                multiplier = 1024.0;  // GB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "mib") || g_str_has_suffix(trimmed_endptr, "mb")) {
-                multiplier = 1.0;  // MB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "kib") || g_str_has_suffix(trimmed_endptr, "kb")) {
-                multiplier = 1.0 / 1024.0;  // KB → MB
-            } else if (g_str_has_suffix(trimmed_endptr, "b")) {
-                multiplier = 1.0 / (1024.0 * 1024.0);  // B → MB
-            }
-            *sent_mb = sent_value * multiplier;
-        }
-        g_free(lower_sent);
-    }
-    
-    g_strfreev(parts);
-}
-static void calculate_total_network_io(gchar* output, gdouble* total_received_mb, gdouble* total_sent_mb) {
-    *total_received_mb = 0.0;
-    *total_sent_mb = 0.0;
-    
-    if (output == NULL || strlen(output) == 0) {
-        return;
-    }
-    
-    gchar** lines = g_strsplit(output, "\n", -1);
-    
-    for (gint i = 0; lines[i] != NULL; i++) {
-        gchar* line = g_strstrip(lines[i]);
-        if (strlen(line) == 0) continue;
-        
-        gdouble received_mb = 0.0;
-        gdouble sent_mb = 0.0;
-        parse_docker_netio(line, &received_mb, &sent_mb);
-        
-        *total_received_mb += received_mb;
-        *total_sent_mb += sent_mb;
-    }
-    
-    g_strfreev(lines);
-}
-static void calculate_total_disk_io(gchar* output, gdouble* total_read_mb, gdouble* total_write_mb) {
-    *total_read_mb = 0.0;
-    *total_write_mb = 0.0;
-    
-    if (output == NULL || strlen(output) == 0) {
-        return;
-    }
-    
-    gchar** lines = g_strsplit(output, "\n", -1);
-    
-    for (gint i = 0; lines[i] != NULL; i++) {
-        gchar* line = g_strstrip(lines[i]);
-        if (strlen(line) == 0) continue;
-        
-        gdouble read_mb = 0.0;
-        gdouble write_mb = 0.0;
-        parse_docker_blockio(line, &read_mb, &write_mb);
-        
-        *total_read_mb += read_mb;
-        *total_write_mb += write_mb;
-    }
-    
-    g_strfreev(lines);
-}
 static void on_memory_chart_stats_received(gchar* output, gpointer user_data) {
     MemoryChartData* chart = (MemoryChartData*)user_data;
 
@@ -1131,7 +865,7 @@ static void on_memory_chart_stats_received(gchar* output, gpointer user_data) {
         return;
     }
 
-    gdouble total_memory_used = calculate_total_memory_usage(output);
+    gdouble total_memory_used = dodo_calculate_total_memory_usage(output);
     if (chart->num_points < CHART_MAX_POINTS) {
         chart->points[chart->num_points] = total_memory_used;
         chart->num_points++;
@@ -1175,7 +909,7 @@ static void on_diskio_chart_stats_received(gchar* output, gpointer user_data) {
 
     gdouble total_read_mb = 0.0;
     gdouble total_write_mb = 0.0;
-    calculate_total_disk_io(output, &total_read_mb, &total_write_mb);
+    dodo_calculate_total_disk_io(output, &total_read_mb, &total_write_mb);
     if (chart->num_points < CHART_MAX_POINTS) {
         chart->read_points[chart->num_points] = total_read_mb;
         chart->write_points[chart->num_points] = total_write_mb;
@@ -1200,9 +934,8 @@ static void on_diskio_chart_stats_received(gchar* output, gpointer user_data) {
 }
 static void update_memory_chart_stats(MemoryChartData* chart) {
     if (chart == NULL) return;
-    chart->system_total_memory = get_system_total_memory();
-    execute_command_async("docker stats --no-stream --format '{{.MemUsage}}'",
-                          on_memory_chart_stats_received, chart);
+    chart->system_total_memory = dodo_get_system_total_memory();
+    dodo_stats_fetch_memory_async(on_memory_chart_stats_received, chart);
 }
 static gboolean update_memory_chart_stats_timer(gpointer user_data) {
     update_memory_chart_stats((MemoryChartData*)user_data);
@@ -1228,8 +961,7 @@ static gboolean memory_chart_anim_tick(gpointer user_data) {
 }
 static void update_diskio_chart_stats(DiskIOChartData* chart) {
     if (chart == NULL) return;
-    execute_command_async("docker stats --no-stream --format '{{.BlockIO}}'",
-                          on_diskio_chart_stats_received, chart);
+    dodo_stats_fetch_blockio_async(on_diskio_chart_stats_received, chart);
 }
 static gboolean update_diskio_chart_stats_timer(gpointer user_data) {
     update_diskio_chart_stats((DiskIOChartData*)user_data);
@@ -1330,7 +1062,7 @@ static void on_networkio_chart_stats_received(gchar* output, gpointer user_data)
 
     gdouble total_received_mb = 0.0;
     gdouble total_sent_mb = 0.0;
-    calculate_total_network_io(output, &total_received_mb, &total_sent_mb);
+    dodo_calculate_total_network_io(output, &total_received_mb, &total_sent_mb);
     if (chart->num_points < CHART_MAX_POINTS) {
         chart->received_points[chart->num_points] = total_received_mb;
         chart->sent_points[chart->num_points] = total_sent_mb;
@@ -1355,8 +1087,7 @@ static void on_networkio_chart_stats_received(gchar* output, gpointer user_data)
 }
 static void update_networkio_chart_stats(NetworkIOChartData* chart) {
     if (chart == NULL) return;
-    execute_command_async("docker stats --no-stream --format '{{.NetIO}}'",
-                          on_networkio_chart_stats_received, chart);
+    dodo_stats_fetch_netio_async(on_networkio_chart_stats_received, chart);
 }
 static gboolean update_networkio_chart_stats_timer(gpointer user_data) {
     update_networkio_chart_stats((NetworkIOChartData*)user_data);
@@ -1549,7 +1280,7 @@ GtkWidget* create_main_window(int argc, char *argv[]) {
     gtk_label_set_attributes(GTK_LABEL(memory_label), attr_list);
     pango_attr_list_unref(attr_list);
     MemoryChartData* memory_chart = g_new0(MemoryChartData, 1);
-    memory_chart->system_total_memory = get_system_total_memory();
+    memory_chart->system_total_memory = dodo_get_system_total_memory();
     GtkWidget* memory_drawing_area = gtk_drawing_area_new();
     gtk_widget_set_size_request(memory_drawing_area, -1, CHART_HEIGHT);
     memory_chart->drawing_area = memory_drawing_area;

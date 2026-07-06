@@ -1,5 +1,5 @@
 #include <gtk/gtk.h>
-#include "src/ui/window.h"
+#include "src/interface/gtk/window.h"
 
 int main(int argc, char *argv[]) {
     create_main_window(argc, argv);
