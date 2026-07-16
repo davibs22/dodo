@@ -565,9 +565,37 @@ static void on_export_image_clicked(GtkMenuItem* menu_item, gpointer user_data) 
         g_free(tag);
         return;
     }
+
+    // Replace dot characters in tag with underscore
+    if (tag) {
+        for (gchar* p = tag; *p; p++) {
+            if (*p == '.') {
+                *p = '_';
+            }
+        }
+    }
+
+    // Replace slash characters in repository with dash
+    if (repository) {
+        for (gchar* p = repository; *p; p++) {
+            if (*p == '/') {
+                *p = '-';
+            }
+        }
+    }
+
+    // Replace dot characters in repository with dash
+    if (repository) {
+        for (gchar* p = repository; *p; p++) {
+            if (*p == '.') {
+                *p = '-';
+            }
+        }
+    }
+
     gchar* image_name = NULL;
     if (repository && tag && strlen(repository) > 0 && strlen(tag) > 0) {
-        image_name = g_strdup_printf("%s:%s", repository, tag);
+        image_name = g_strdup_printf("%s-%s", repository, tag);
     } else if (repository && strlen(repository) > 0) {
         image_name = g_strdup(repository);
     } else {
