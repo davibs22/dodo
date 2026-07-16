@@ -1,19 +1,25 @@
+dodo (1.1.2-1) unstable; urgency=medium
+
+  * Enhance image naming convention by replacing special characters.
+
+ -- Davi Bomfim Santiago <davibomfimsantiago@gmail.com>  Wed, 15 Jul 2026 22:27:00 -0300
+
 dodo (1.1.1-1) unstable; urgency=medium
 
   * Fix crash when viewing logs of stopped containers.
   * Fix freeze during automatic container list refresh.
   * Refresh containers incrementally to preserve scroll position.
 
- -- Davi Bomfim Santiago <davi.santiago@sesatech.com.br>  Tue, 16 Jun 2026 15:00:00 -0300
+ -- Davi Bomfim Santiago <davibomfimsantiago@gmail.com>  Tue, 16 Jun 2026 15:00:00 -0300
 
 dodo (1.1.0-1) unstable; urgency=medium
 
   * Add automatic refresh of the containers table every 5 seconds.
 
- -- Davi Bomfim Santiago <davi.santiago@sesatech.com.br>  Mon, 15 Jun 2026 12:00:00 -0300
+ -- Davi Bomfim Santiago <davibomfimsantiago@gmail.com>  Mon, 15 Jun 2026 12:00:00 -0300
 
 dodo (1.0.0-1) unstable; urgency=medium
 
   * Initial Debian package release.
 
- -- Davi Bomfim Santiago <davi.santiago@sesatech.com.br>  Fri, 05 Jun 2026 12:00:00 -0300
+ -- Davi Bomfim Santiago <davibomfimsantiago@gmail.com>  Fri, 05 Jun 2026 12:00:00 -0300
